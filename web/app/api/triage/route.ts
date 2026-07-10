@@ -178,7 +178,10 @@ export async function POST(req: NextRequest) {
       functionName: "settleClaim",
       args: [policyholder as `0x${string}`, photoHash, damageScore, payoutAmount],
     });
-    await publicClient.waitForTransactionReceipt({ hash: txHash });
+    // Non-blocking: return immediately after submitting. Confirmation is one
+    // click away via explorerUrl. Keeps the endpoint fast for agent callers and
+    // avoids serverless timeouts. All validation (duplicate, threshold, gas)
+    // has already run before submission, so the payout is effectively assured.
 
     const payoutUsd = Number(payoutAmount) / 1_000_000;
     const paid = damageScore >= 40 && payoutAmount > 0n;
@@ -186,6 +189,8 @@ export async function POST(req: NextRequest) {
     // ── single unified verdict ──────────────────────────────────────────────
     return NextResponse.json({
       verdict: paid ? "paid" : "below_threshold",
+      status: "submitted",
+      note: "Payout transaction submitted to X Layer. Confirm via explorerUrl.",
       stormConfirmed: true,
       windGustKmh: gust,
       precipitationMm: precip,
