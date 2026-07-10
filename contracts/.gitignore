@@ -1,0 +1,26 @@
+# Compiler files
+cache/
+out/
+
+# Commonly ignored directories
+.logs/
+.ignore/
+
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*/31337/
+/broadcast/**/dry-run/
+
+# Docs
+docs/
+
+# Dotenv file
+.env
+.env.*
+!.env.example
+
+# Exclude all deploy broadcasts and cache (may contain sensitive tx data)
+/broadcast/
+cache/
+.env*
+/lib/
