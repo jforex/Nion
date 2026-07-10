@@ -54,6 +54,32 @@ Respond with a single JSON object and nothing else (no markdown, no backticks) u
   "notes": string
 }`;
 
+// Browser-friendly health check. Visiting the URL (a GET) returns service info;
+// the actual triage runs on POST.
+export async function GET() {
+  return NextResponse.json({
+    service: "Nion \u2014 Disaster Triage",
+    status: "live",
+    mode: "Agent-to-MCP (pay-per-call)",
+    method: "POST",
+    description:
+      "Autonomous disaster damage triage on X Layer. Verifies a peril against weather records, scores structural damage from a photo, anchors the evidence on-chain, and releases an emergency stablecoin payout.",
+    input: [
+      "policyholder",
+      "latitude",
+      "longitude",
+      "incidentDate",
+      "perilType",
+      "coverageLimitUsd",
+      "deductibleUsd",
+      "imageBase64",
+      "mimeType",
+    ],
+    output: ["verdict", "damageScore", "payoutUsd", "txHash", "explorerUrl"],
+    chain: "X Layer testnet (1952)",
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     // ── x402 PAYMENT GATE (attached at OKX ASP registration) ────────────────
