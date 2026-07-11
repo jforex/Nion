@@ -25,9 +25,10 @@ function useReveal() {
 }
 
 const STEPS = [
-  { n: "01", title: "Oracle gateway", body: "Connect any real-world data source — weather, flight-radar, soil-moisture, river gauges. The Disaster Triage vault uses historical weather to confirm a peril occurred at the property's coordinates." },
-  { n: "02", title: "Attestation", body: "The agent analyzes the event and writes a signed proof on X Layer. For triage, it scores the damage from the photo and anchors the fingerprint — a tamper-proof record no one can reuse." },
-  { n: "03", title: "Vault factory", body: "Define the payout rule in code and deploy. The Disaster Triage vault runs: if verified damage clears the threshold, release emergency relief to the wallet, in the same minute." },
+  { n: "01", title: "Verify the peril", body: "Nion queries historical weather records for the property's exact coordinates and the incident date. If no severe weather is on file, the claim stops here — the event has to be independently real." },
+  { n: "02", title: "Score the damage", body: "A vision model reports what it observes in the photo: missing roof covering, exposed decking, structural collapse, debris, water damage. Nion derives the damage score from those facts — the model never guesses a number." },
+  { n: "03", title: "Anchor the evidence", body: "The photo's fingerprint is written permanently to X Layer. The same image can never be submitted for a second claim — the contract itself rejects it." },
+  { n: "04", title: "Release relief", body: "If verified damage clears the threshold, the contract sends emergency stablecoin straight to the policyholder's wallet. Settled on-chain, in the same minute." },
 ];
 
 export default function Landing() {
@@ -48,6 +49,7 @@ export default function Landing() {
           <div style={s.navRight}>
             <a href="#how" style={s.navLink}>How it works</a>
             <a href="#proof" style={s.navLink}>Proof</a>
+            <a href="#api" style={s.navLink}>API</a>
             <span style={s.chain}>X Layer testnet · 1952</span>
           </div>
         </nav>
@@ -56,15 +58,16 @@ export default function Landing() {
           <div className="hero-copy" style={s.heroCopy}>
             <span style={s.eyebrow}>
               <span style={s.eyebrowDot} />
-              Parametric payout protocol · live on X Layer
+              Autonomous claims agent · ASP #5013 on OKX.AI
             </span>
             <h1 style={s.h1}>
-              Parametric insurance, deployed in <span style={s.lit}>minutes</span>.
+              Disaster payouts in <span style={s.lit}>minutes</span>, not months.
             </h1>
             <p style={s.lede}>
-              Nion turns any verified real-world event into an instant on-chain
-              payout. Connect an oracle, define a rule, deploy a vault. Disaster
-              damage triage is the first vault, live today.
+              Nion is an autonomous claims agent. Send it a damage photo and a
+              location — it verifies the peril against weather records, scores the
+              damage, anchors the evidence on X Layer, and releases emergency relief
+              to the wallet. One call. No adjuster.
             </p>
             <div style={s.ctaRow}>
               <Link href="/claim" className="btn-primary" style={s.btnPrimary}>File a claim</Link>
@@ -81,17 +84,18 @@ export default function Landing() {
             <div>
               <div style={s.kicker}>The problem</div>
               <p style={s.bandText}>
-                Parametric insurance pays out on a measurable trigger, not a
-                months-long investigation. But building it means stitching together
-                oracles, attestations, and payout logic from scratch, every time.
+                After a disaster, property claims take months. Insurers can&apos;t
+                staff the surge — thousands of damage photos sit in a queue while
+                families who need emergency relief now get nothing.
               </p>
             </div>
             <div>
               <div style={{ ...s.kicker, color: "#3DDC97" }}>What Nion is</div>
               <p style={s.bandText}>
-                A protocol that turns that stack into infrastructure: a verified
-                event becomes a signed on-chain attestation, and a vault releases
-                funds against it automatically. Deploy once, settle forever.
+                A service that triages a claim the moment it arrives — and pays.
+                It confirms the event really happened, reads the damage from the
+                photo, records tamper-proof evidence on-chain, and settles the
+                emergency tranche in the same minute.
               </p>
             </div>
           </div>
@@ -99,8 +103,8 @@ export default function Landing() {
 
         <section id="how" style={s.section}>
           <div style={s.sectionHead} data-reveal>
-            <div style={s.kicker}>The architecture</div>
-            <h2 style={s.h2}>Three layers. One protocol.</h2>
+            <div style={s.kicker}>How it works</div>
+            <h2 style={s.h2}>Four steps. One autonomous pass.</h2>
           </div>
           <div style={s.steps}>
             {STEPS.map((step) => (
@@ -128,20 +132,56 @@ export default function Landing() {
           </div>
         </section>
 
+        <section id="api" style={s.section}>
+          <div style={s.sectionHead} data-reveal>
+            <div style={s.kicker}>Hire the agent</div>
+            <h2 style={s.h2}>One call. Any agent.</h2>
+            <p style={s.appSub}>
+              Nion isn&apos;t only a website — it&apos;s a callable service. An insurer&apos;s
+              agent sends a claim and gets back a verdict and an on-chain payout,
+              machine to machine. Registered on the OKX.AI marketplace as ASP #5013.
+            </p>
+          </div>
+          <div style={s.codeCard} data-reveal>
+            <div style={s.codeHead}>
+              <span style={s.codeMethod}>POST</span>
+              <span style={s.codePath}>/api/triage</span>
+            </div>
+            <pre style={s.code}>{`{
+  "policyholder":     "0x9407…d38D",
+  "latitude":         27.9506,
+  "longitude":        -82.4572,
+  "incidentDate":     "2024-10-09",
+  "perilType":        "Hurricane",
+  "coverageLimitUsd": 2000,
+  "imageBase64":      "…"
+}`}</pre>
+            <div style={s.codeArrow}>↓</div>
+            <pre style={{ ...s.code, ...s.codeOut }}>{`{
+  "verdict":      "paid",
+  "damageScore":  65,
+  "payoutUsd":    1100,
+  "txHash":       "0xa989…d39e",
+  "explorerUrl":  "https://…"
+}`}</pre>
+          </div>
+        </section>
+
         <section style={s.finalCta} data-reveal>
-          <h2 style={s.h2}>See the first vault settle on-chain.</h2>
-          <p style={s.appSub}>The Disaster Triage vault, prefilled with a real hurricane event so it runs end to end on testnet.</p>
+          <h2 style={s.h2}>See a claim settle on-chain.</h2>
+          <p style={s.appSub}>Prefilled with a real hurricane event so it runs end to end on X Layer testnet.</p>
           <Link href="/claim" className="btn-primary" style={{ ...s.btnPrimary, marginTop: 24 }}>File a claim</Link>
         </section>
 
         <footer style={s.footer}>
           <div style={s.brand}>
             <Logo size={24} />
-
+            <span style={{ ...s.brandText, fontSize: 15 }}>Nion</span>
           </div>
           <p style={s.footerNote}>
-            Nion is a parametric payout protocol. Disaster Triage is the first
-            vault — emergency triage, not final settlement. Testnet demo.
+            Nion settles parametric emergency triage — not final claim settlement.
+            Coverage is set at onboarding; severity determines the released fraction.
+            Testnet demo on X Layer.
           </p>
         </footer>
       </div>
@@ -236,6 +276,13 @@ const s: Record<string, React.CSSProperties> = {
   proofTitle: { fontFamily: "'Space Grotesk',sans-serif", fontSize: 19, fontWeight: 600, marginBottom: 8 },
   proofText: { fontSize: 16, lineHeight: 1.6, color: "#B3A895" },
 
+  codeCard: { background: "linear-gradient(180deg,#181309,#141109)", border: "1px solid rgba(138,126,107,0.18)", borderRadius: 20, padding: 28, boxShadow: "0 40px 100px -50px rgba(0,0,0,0.8), inset 0 1px 0 rgba(245,239,230,0.04)" },
+  codeHead: { display: "flex", alignItems: "center", gap: 12, marginBottom: 18 },
+  codeMethod: { fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", color: "#0A0906", background: AMBER, padding: "4px 10px", borderRadius: 6 },
+  codePath: { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 15, color: PAPER },
+  code: { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 13.5, lineHeight: 1.7, color: "#B3A895", background: "#0d0b06", border: "1px solid rgba(138,126,107,0.15)", borderRadius: 12, padding: "18px 20px", overflowX: "auto", margin: 0 },
+  codeOut: { color: "#9fe8d8", borderColor: "rgba(61,220,151,0.2)", background: "rgba(61,220,151,0.04)" },
+  codeArrow: { textAlign: "center", color: AMBER, fontSize: 18, padding: "12px 0" },
   finalCta: { textAlign: "center", padding: "72px 0 96px", maxWidth: 560, margin: "0 auto" },
   appSub: { fontSize: 18, color: "#C9BEAD", lineHeight: 1.6, marginTop: 14 },
 
