@@ -41,12 +41,12 @@ export default function Landing() {
       <div style={s.grain} />
 
       <div style={s.shell}>
-        <nav style={s.nav}>
+        <nav style={s.nav} className="site-nav">
           <div style={s.brand}>
             <Logo size={32} />
             <span style={s.brandText}>Nion</span>
           </div>
-          <div style={s.navRight}>
+          <div style={s.navRight} className="nav-right">
             <a href="#how" style={s.navLink}>How it works</a>
             <a href="#proof" style={s.navLink}>Proof</a>
             <a href="#api" style={s.navLink}>API</a>
@@ -80,7 +80,7 @@ export default function Landing() {
         </section>
 
         <section style={s.band} data-reveal>
-          <div style={s.bandGrid}>
+          <div style={s.bandGrid} className="band-grid">
             <div>
               <div style={s.kicker}>The problem</div>
               <p style={s.bandText}>
@@ -124,7 +124,7 @@ export default function Landing() {
           <div style={s.proofCard} data-reveal>
             <div style={s.kicker}>Fraud-resistant by design</div>
             <h2 style={s.h2}>Every claim leaves a permanent record.</h2>
-            <div style={s.proofGrid}>
+            <div style={s.proofGrid} className="proof-grid">
               <Proof title="The event is verified" body="Payouts trigger only when independent weather records confirm severe conditions at the property's exact coordinates." />
               <Proof title="The photo is anchored" body="Each image's fingerprint is written to X Layer. Reusing a photo for a second claim is rejected by the contract itself." />
               <Proof title="Only the agent can settle" body="The payout function accepts calls from one trusted agent wallet. No one else can move funds." />
@@ -173,7 +173,7 @@ export default function Landing() {
           <Link href="/claim" className="btn-primary" style={{ ...s.btnPrimary, marginTop: 24 }}>File a claim</Link>
         </section>
 
-        <footer style={s.footer}>
+        <footer style={s.footer} className="site-footer">
           <div style={s.brand}>
             <Logo size={24} />
             <span style={{ ...s.brandText, fontSize: 15 }}>Nion</span>
@@ -224,6 +224,20 @@ const css = `
   @media (prefers-reduced-motion:reduce){
     [data-reveal]{opacity:1;transform:none;transition:none}
     html{scroll-behavior:auto}
+    
+  }
+    @media (max-width: 920px){
+    .hero-grid{grid-template-columns:1fr !important;gap:44px !important}
+    .proof-grid{grid-template-columns:1fr 1fr !important}
+  }
+  @media (max-width: 640px){
+    .site-nav{flex-wrap:wrap;gap:12px}
+    .nav-right{margin-left:0 !important;width:100%;gap:16px !important}
+    .band-grid{grid-template-columns:1fr !important;gap:32px !important}
+    .proof-grid{grid-template-columns:1fr !important}
+    .code-card pre{font-size:11.5px !important}
+    .site-footer{flex-direction:column;align-items:flex-start !important}
+    .site-footer p{text-align:left !important}
   }
 `;
 
@@ -232,7 +246,7 @@ const s: Record<string, React.CSSProperties> = {
   atmos: { position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", background: "radial-gradient(760px 480px at 78% 2%, rgba(245,166,35,0.20), transparent 58%), radial-gradient(560px 560px at 10% 92%, rgba(255,107,53,0.10), transparent 60%)" },
   clouds: { position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", opacity: 0.35, background: "radial-gradient(1200px 300px at 60% -5%, rgba(40,30,15,0.9), transparent 70%), radial-gradient(900px 400px at 90% 20%, rgba(60,35,10,0.5), transparent 60%)" },
   grain: { position: "fixed", inset: 0, zIndex: 1, pointerEvents: "none", opacity: 0.045, backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" },
-  shell: { position: "relative", zIndex: 2, maxWidth: 1180, margin: "0 auto", padding: "0 40px" },
+  shell: { position: "relative", zIndex: 2, maxWidth: 1180, margin: "0 auto", padding: "0 clamp(20px, 5vw, 40px)" },
 
   nav: { display: "flex", alignItems: "center", padding: "28px 0" },
   brand: { display: "flex", alignItems: "center", gap: 11 },

@@ -162,6 +162,7 @@ export default function ClaimPage() {
         @media (max-width: 860px) {
           .claim-layout { grid-template-columns: 1fr !important; gap: 40px !important; }
           .claim-left { position: static !important; }
+          .claim-grid2 { grid-template-columns: 1fr !important; }
         }
       `}</style>
       {/* nion-claim-css */}
@@ -222,7 +223,7 @@ export default function ClaimPage() {
               )}
             </div>
 
-            <div style={s.grid2}>
+            <div style={s.grid2} className="claim-grid2">
               <Field label="Property address"><input style={s.input} className="nion-input" value={address} onChange={(e) => setAddress(e.target.value)} /></Field>
               <Field label="Policy number"><input style={s.input} className="nion-input" value={policyNo} onChange={(e) => setPolicyNo(e.target.value)} /></Field>
               <Field label="Latitude"><input style={s.input} className="nion-input" value={lat} onChange={(e) => setLat(e.target.value)} /></Field>

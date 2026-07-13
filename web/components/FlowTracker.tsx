@@ -244,7 +244,7 @@ const styles: Record<string, React.CSSProperties> = {
   dotFailed: { background: "#F5735E" },
   pillChevron: { color: "#6B7C93", fontSize: 11, marginLeft: 2 },
   panel: {
-    width: 340,
+    width: "min(340px, calc(100vw - 40px))",
     background: PAPER,
     border: "1px solid #22344d",
     borderRadius: 16,
