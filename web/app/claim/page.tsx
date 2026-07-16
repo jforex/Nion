@@ -159,10 +159,17 @@ export default function ClaimPage() {
   return (
     <main style={s.page}>
       <style>{`
+        *{box-sizing:border-box}
+        /* Stack the two-column page layout on tablets, but keep the form grid 2-up */
         @media (max-width: 860px) {
-          .claim-layout { grid-template-columns: 1fr !important; gap: 40px !important; }
+          .claim-layout { grid-template-columns: 1fr !important; gap: clamp(32px,6vw,40px) !important; }
           .claim-left { position: static !important; }
+        }
+        /* Phones: single-column form + full-width wallet button */
+        @media (max-width: 560px) {
           .claim-grid2 { grid-template-columns: 1fr !important; }
+          .claim-wallet-row { align-items: stretch !important; }
+          .claim-connect { width: 100%; text-align: center; }
         }
       `}</style>
       {/* nion-claim-css */}
@@ -210,7 +217,7 @@ export default function ClaimPage() {
           </aside>
 
           <div style={s.card}>
-            <div style={s.walletRow}>
+            <div style={s.walletRow} className="claim-wallet-row">
               <label style={s.label}>Policyholder wallet</label>
               {wallet ? (
                 <div style={s.walletConnected}>
@@ -219,7 +226,7 @@ export default function ClaimPage() {
                   <button style={s.disconnect} onClick={disconnectWallet} aria-label="Disconnect wallet">Disconnect</button>
                 </div>
               ) : (
-                <button style={s.connectBtn} className="nion-connect" onClick={connectWallet}>Connect MetaMask</button>
+                <button style={s.connectBtn} className="nion-connect claim-connect" onClick={connectWallet}>Connect MetaMask</button>
               )}
             </div>
 
@@ -281,14 +288,14 @@ const s: Record<string, React.CSSProperties> = {
   page: { position: "relative", minHeight: "100vh", background: BLACK, color: PAPER, fontFamily: "'Inter',system-ui,sans-serif", overflowX: "hidden" },
   glow: { position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", background: "radial-gradient(720px 460px at 20% 0%, rgba(245,166,35,0.15), transparent 60%), radial-gradient(520px 520px at 95% 90%, rgba(255,107,53,0.08), transparent 60%)" },
   grain: { position: "fixed", inset: 0, zIndex: 1, pointerEvents: "none", opacity: 0.05, backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" },
-  shell: { position: "relative", zIndex: 2, maxWidth: 1120, margin: "0 auto", padding: "0 40px 90px" },
+  shell: { position: "relative", zIndex: 2, maxWidth: 1120, margin: "0 auto", padding: "0 clamp(18px,5vw,40px) clamp(56px,9vw,90px)" },
 
-  nav: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "28px 0 56px" },
+  nav: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "clamp(20px,4vw,28px) 0 clamp(32px,6vw,56px)" },
   brand: { display: "flex", alignItems: "center", gap: 11, textDecoration: "none", color: PAPER },
   brandText: { fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 18, letterSpacing: "-0.02em" },
   back: { color: SAND, textDecoration: "none", fontSize: 15.5, fontWeight: 500 },
 
-  layout: { display: "grid", gridTemplateColumns: "minmax(0, 0.85fr) minmax(0, 1.15fr)", gap: 64, alignItems: "start" },
+  layout: { display: "grid", gridTemplateColumns: "minmax(0, 0.85fr) minmax(0, 1.15fr)", gap: "clamp(36px,5vw,64px)", alignItems: "start" },
 
   left: { position: "sticky", top: 40 },
   kicker: { fontSize: 13.5, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: AMBER, marginBottom: 18 },
@@ -300,7 +307,7 @@ const s: Record<string, React.CSSProperties> = {
   flowText: { fontSize: 16.5, color: "#B3A895", lineHeight: 1.4 },
   leftNote: { fontSize: 14.5, color: SAND, lineHeight: 1.55, maxWidth: 380, borderTop: "1px solid rgba(138,126,107,0.2)", paddingTop: 20 },
 
-  card: { background: "linear-gradient(180deg,#1B160C,#141109)", border: "1px solid rgba(138,126,107,0.2)", borderRadius: 22, padding: 32, boxShadow: "0 40px 120px -50px rgba(0,0,0,0.9), inset 0 1px 0 rgba(245,239,230,0.05)" },
+  card: { background: "linear-gradient(180deg,#1B160C,#141109)", border: "1px solid rgba(138,126,107,0.2)", borderRadius: 22, padding: "clamp(20px,4.5vw,32px)", boxShadow: "0 40px 120px -50px rgba(0,0,0,0.9), inset 0 1px 0 rgba(245,239,230,0.05)" },
   walletRow: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 },
   walletConnected: { display: "flex", alignItems: "center", gap: 10, padding: "8px 10px 8px 14px", borderRadius: 30, border: "1px solid rgba(61,220,151,0.3)", background: "rgba(61,220,151,0.08)", color: GREEN, fontWeight: 600, fontSize: 14.5, fontVariantNumeric: "tabular-nums" },
   walletDot: { width: 7, height: 7, borderRadius: "50%", background: GREEN },

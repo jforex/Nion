@@ -28,7 +28,7 @@ const STEPS = [
   { n: "01", title: "Verify the peril", body: "Nion queries historical weather records for the property's exact coordinates and the incident date. If no severe weather is on file, the claim stops here — the event has to be independently real." },
   { n: "02", title: "Score the damage", body: "A vision model reports what it observes in the photo: missing roof covering, exposed decking, structural collapse, debris, water damage. Nion derives the damage score from those facts — the model never guesses a number." },
   { n: "03", title: "Anchor the evidence", body: "The photo's fingerprint is written permanently to X Layer. The same image can never be submitted for a second claim — the contract itself rejects it." },
-  { n: "04", title: "Release relief", body: "If verified damage clears the threshold, the contract sends emergency stablecoin straight to the policyholder's wallet. Settled on-chain, in the same minute." },
+  { n: "04", title: "Release the first tranche", body: "If verified damage clears the threshold, the contract releases an emergency payout — a fraction of the coverage limit, sized by severity — straight to the policyholder's wallet. Final claim settlement stays with the insurer; Nion solves the speed problem for the money people need now." },
 ];
 
 export default function Landing() {
@@ -50,7 +50,7 @@ export default function Landing() {
             <a href="#how" style={s.navLink}>How it works</a>
             <a href="#proof" style={s.navLink}>Proof</a>
             <a href="#api" style={s.navLink}>API</a>
-            <span style={s.chain}>X Layer testnet · 1952</span>
+            <span style={s.chain} className="chain-chip">X Layer testnet · 1952</span>
           </div>
         </nav>
 
@@ -61,17 +61,14 @@ export default function Landing() {
               Autonomous claims agent · ASP #5013 on OKX.AI
             </span>
             <h1 style={s.h1}>
-              Disaster payouts in <span style={s.lit}>minutes</span>, not months.
+              Emergency payouts in <span style={s.lit}>minutes</span>, not weeks.
             </h1>
             <p style={s.lede}>
-              Nion is an autonomous claims agent. Send it a damage photo and a
-              location — it verifies the peril against weather records, scores the
-              damage, anchors the evidence on X Layer, and releases emergency relief
-              to the wallet. One call. No adjuster.
+              Nion is an autonomous claims agent that insurers and other agents hire through a single endpoint. A claims system hands it a damage photo and a location; it verifies the peril, scores the damage, anchors the evidence on X Layer, and releases the emergency first tranche to the policyholder&apos;s wallet — machine to machine. Not final settlement, the fast relief that today takes months.
             </p>
-            <div style={s.ctaRow}>
-              <Link href="/claim" className="btn-primary" style={s.btnPrimary}>File a claim</Link>
-              <a href="#how" className="btn-ghost" style={s.btnGhost}>See how it works</a>
+            <div style={s.ctaRow} className="cta-row">
+              <Link href="/claim" className="btn-primary" style={s.btnPrimary}>Run the live demo</Link>
+              <a href="#api" className="btn-ghost" style={s.btnGhost}>See the API</a>
             </div>
           </div>
           <div className="hero-demo">
@@ -137,12 +134,10 @@ export default function Landing() {
             <div style={s.kicker}>Hire the agent</div>
             <h2 style={s.h2}>One call. Any agent.</h2>
             <p style={s.appSub}>
-              Nion isn&apos;t only a website — it&apos;s a callable service. An insurer&apos;s
-              agent sends a claim and gets back a verdict and an on-chain payout,
-              machine to machine. Registered on the OKX.AI marketplace as ASP #5013.
+              This is the product. An insurer&apos;s claims system loops its backlog through one endpoint — each call returns a verdict and an on-chain settlement, machine to machine. The web form below is just a window into the same agent. Registered on the OKX.AI marketplace as ASP #5013.
             </p>
           </div>
-          <div style={s.codeCard} data-reveal>
+          <div style={s.codeCard} className="code-card" data-reveal>
             <div style={s.codeHead}>
               <span style={s.codeMethod}>POST</span>
               <span style={s.codePath}>/api/triage</span>
@@ -170,7 +165,7 @@ export default function Landing() {
         <section style={s.finalCta} data-reveal>
           <h2 style={s.h2}>See a claim settle on-chain.</h2>
           <p style={s.appSub}>Prefilled with a real hurricane event so it runs end to end on X Layer testnet.</p>
-          <Link href="/claim" className="btn-primary" style={{ ...s.btnPrimary, marginTop: 24 }}>File a claim</Link>
+          <Link href="/claim" className="btn-primary" style={{ ...s.btnPrimary, marginTop: 24 }}>Run the live demo</Link>
         </section>
 
         <footer style={s.footer} className="site-footer">
@@ -179,9 +174,7 @@ export default function Landing() {
             <span style={{ ...s.brandText, fontSize: 15 }}>Nion</span>
           </div>
           <p style={s.footerNote}>
-            Nion settles parametric emergency triage — not final claim settlement.
-            Coverage is set at onboarding; severity determines the released fraction.
-            Testnet demo on X Layer.
+            Parametric emergency triage — not final claim settlement. Testnet demo on X Layer: the payout pool is pre-funded to demonstrate the flow and stands in for an insurer&apos;s coverage float. Per-insurer funded pools are the next contract iteration.
           </p>
         </footer>
       </div>
@@ -209,35 +202,47 @@ const PAPER = "#F5EFE6";
 const SAND = "#8A7E6B";
 
 const css = `
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  section[id]{scroll-margin-top:84px}
   [data-reveal]{opacity:0;transform:translateY(22px);transition:opacity .8s cubic-bezier(.2,.7,.2,1),transform .8s cubic-bezier(.2,.7,.2,1)}
   [data-reveal].in{opacity:1;transform:none}
   @keyframes nionPulse{70%{box-shadow:0 0 0 8px rgba(245,166,35,0)}100%{box-shadow:0 0 0 0 rgba(245,166,35,0)}}
-  html{scroll-behavior:smooth}
   .btn-primary{transition:transform .15s,box-shadow .35s}
   .btn-primary:hover{transform:translateY(-2px);box-shadow:0 18px 50px -10px rgba(245,166,35,0.6) !important}
   .btn-ghost{transition:border-color .2s,background .2s}
   .btn-ghost:hover{border-color:${AMBER} !important;background:rgba(245,166,35,0.05) !important}
-  .navlink:hover{color:${PAPER}}
+  .site-nav a{transition:color .2s}
+  .site-nav a:hover{color:${PAPER}}
+
+  /* Tablet */
   @media (max-width:920px){
-    .hero-grid{grid-template-columns:1fr !important;gap:44px !important}
-  }
-  @media (prefers-reduced-motion:reduce){
-    [data-reveal]{opacity:1;transform:none;transition:none}
-    html{scroll-behavior:auto}
-    
-  }
-    @media (max-width: 920px){
-    .hero-grid{grid-template-columns:1fr !important;gap:44px !important}
+    .hero-grid{grid-template-columns:1fr !important;gap:clamp(36px,6vw,44px) !important}
     .proof-grid{grid-template-columns:1fr 1fr !important}
   }
-  @media (max-width: 640px){
+
+  /* Small tablet / large phone */
+  @media (max-width:640px){
     .site-nav{flex-wrap:wrap;gap:12px}
-    .nav-right{margin-left:0 !important;width:100%;gap:16px !important}
-    .band-grid{grid-template-columns:1fr !important;gap:32px !important}
+    .nav-right{margin-left:0 !important;width:100%;justify-content:space-between;gap:14px !important;font-size:14px}
+    .band-grid{grid-template-columns:1fr !important;gap:28px !important}
     .proof-grid{grid-template-columns:1fr !important}
     .code-card pre{font-size:11.5px !important}
     .site-footer{flex-direction:column;align-items:flex-start !important}
-    .site-footer p{text-align:left !important}
+    .site-footer p{text-align:left !important;max-width:100% !important}
+  }
+
+  /* Phone: full-width tap targets, hide the chain chip to save the row */
+  @media (max-width:480px){
+    .cta-row{flex-direction:column;align-items:stretch !important}
+    .cta-row a{width:100%;text-align:center}
+    .chain-chip{display:none !important}
+    .nav-right{justify-content:flex-start}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    [data-reveal]{opacity:1;transform:none;transition:none}
+    html{scroll-behavior:auto}
   }
 `;
 
@@ -248,14 +253,14 @@ const s: Record<string, React.CSSProperties> = {
   grain: { position: "fixed", inset: 0, zIndex: 1, pointerEvents: "none", opacity: 0.045, backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" },
   shell: { position: "relative", zIndex: 2, maxWidth: 1180, margin: "0 auto", padding: "0 clamp(20px, 5vw, 40px)" },
 
-  nav: { display: "flex", alignItems: "center", padding: "28px 0" },
+  nav: { display: "flex", alignItems: "center", padding: "clamp(14px,2.4vw,20px) clamp(20px,5vw,40px)", margin: "0 calc(-1 * clamp(20px,5vw,40px))", position: "sticky", top: 0, zIndex: 30, background: "rgba(10,9,6,0.72)", backdropFilter: "saturate(140%) blur(14px)", WebkitBackdropFilter: "saturate(140%) blur(14px)", borderBottom: "1px solid rgba(138,126,107,0.14)" },
   brand: { display: "flex", alignItems: "center", gap: 11 },
   brandText: { fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 20, letterSpacing: "-0.02em" },
   navRight: { marginLeft: "auto", display: "flex", alignItems: "center", gap: 30 },
   navLink: { color: SAND, textDecoration: "none", fontSize: 15.5, fontWeight: 500 },
   chain: { fontSize: 13, color: SAND, border: "1px solid rgba(138,126,107,0.3)", padding: "6px 12px", borderRadius: 20, fontVariantNumeric: "tabular-nums" },
 
-  hero: { display: "grid", gridTemplateColumns: "1.05fr 0.95fr", gap: 56, alignItems: "center", padding: "70px 0 96px" },
+  hero: { display: "grid", gridTemplateColumns: "1.05fr 0.95fr", gap: "clamp(40px,5vw,56px)", alignItems: "center", padding: "clamp(36px,6vw,70px) 0 clamp(56px,9vw,96px)" },
   heroCopy: {},
   eyebrow: { display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12.5, fontWeight: 600, letterSpacing: "0.07em", textTransform: "uppercase", color: AMBER, marginBottom: 26, border: "1px solid rgba(245,166,35,0.25)", background: "rgba(245,166,35,0.06)", padding: "7px 14px", borderRadius: 30 },
   eyebrowDot: { width: 6, height: 6, borderRadius: "50%", background: AMBER, animation: "nionPulse 1.8s infinite" },
@@ -266,13 +271,13 @@ const s: Record<string, React.CSSProperties> = {
   btnPrimary: { background: AMBER, color: "#1A1206", border: "none", padding: "16px 30px", borderRadius: 12, fontSize: 16, fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em", textDecoration: "none", display: "inline-block", boxShadow: "0 8px 30px -10px rgba(245,166,35,0.4)" },
   btnGhost: { background: "transparent", color: PAPER, border: "1px solid rgba(138,126,107,0.35)", padding: "16px 26px", borderRadius: 12, fontSize: 15.5, fontWeight: 600, textDecoration: "none", display: "inline-block" },
 
-  band: { padding: "56px 0", borderTop: "1px solid rgba(138,126,107,0.15)", borderBottom: "1px solid rgba(138,126,107,0.15)" },
-  bandGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 48 },
+  band: { padding: "clamp(40px,7vw,56px) 0", borderTop: "1px solid rgba(138,126,107,0.15)", borderBottom: "1px solid rgba(138,126,107,0.15)" },
+  bandGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "clamp(28px,4vw,48px)" },
   kicker: { fontSize: 13.5, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: AMBER, marginBottom: 14 },
   bandText: { fontSize: 18, lineHeight: 1.65, color: "#C9BEAD" },
 
-  section: { padding: "88px 0" },
-  sectionHead: { marginBottom: 48, maxWidth: 640 },
+  section: { padding: "clamp(52px,9vw,88px) 0" },
+  sectionHead: { marginBottom: "clamp(32px,5vw,48px)", maxWidth: 640 },
   h2: { fontFamily: "'Space Grotesk',sans-serif", fontSize: "clamp(28px,3.5vw,40px)", fontWeight: 600, letterSpacing: "-0.025em", lineHeight: 1.1 },
 
   steps: { display: "flex", flexDirection: "column" },
@@ -283,21 +288,21 @@ const s: Record<string, React.CSSProperties> = {
   stepTitle: { fontFamily: "'Space Grotesk',sans-serif", fontSize: 22, fontWeight: 600, marginBottom: 8, letterSpacing: "-0.01em" },
   stepText: { fontSize: 17, lineHeight: 1.6, color: "#B3A895", maxWidth: 560 },
 
-  proofCard: { background: "linear-gradient(180deg,#181309,#141109)", border: "1px solid rgba(138,126,107,0.18)", borderRadius: 20, padding: "44px 40px", boxShadow: "0 40px 100px -50px rgba(0,0,0,0.8), inset 0 1px 0 rgba(245,239,230,0.04)" },
-  proofGrid: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 32, marginTop: 36 },
+  proofCard: { background: "linear-gradient(180deg,#181309,#141109)", border: "1px solid rgba(138,126,107,0.18)", borderRadius: 20, padding: "clamp(26px,4.5vw,44px) clamp(22px,4vw,40px)", boxShadow: "0 40px 100px -50px rgba(0,0,0,0.8), inset 0 1px 0 rgba(245,239,230,0.04)" },
+  proofGrid: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "clamp(24px,3vw,32px)", marginTop: 36 },
   proofItem: {},
   proofCheck: { width: 30, height: 30, borderRadius: "50%", background: "rgba(61,220,151,0.12)", border: "1px solid rgba(61,220,151,0.3)", color: GREEN, display: "grid", placeItems: "center", fontSize: 15, fontWeight: 700, marginBottom: 16 },
   proofTitle: { fontFamily: "'Space Grotesk',sans-serif", fontSize: 19, fontWeight: 600, marginBottom: 8 },
   proofText: { fontSize: 16, lineHeight: 1.6, color: "#B3A895" },
 
-  codeCard: { background: "linear-gradient(180deg,#181309,#141109)", border: "1px solid rgba(138,126,107,0.18)", borderRadius: 20, padding: 28, boxShadow: "0 40px 100px -50px rgba(0,0,0,0.8), inset 0 1px 0 rgba(245,239,230,0.04)" },
+  codeCard: { background: "linear-gradient(180deg,#181309,#141109)", border: "1px solid rgba(138,126,107,0.18)", borderRadius: 20, padding: "clamp(20px,4vw,28px)", boxShadow: "0 40px 100px -50px rgba(0,0,0,0.8), inset 0 1px 0 rgba(245,239,230,0.04)" },
   codeHead: { display: "flex", alignItems: "center", gap: 12, marginBottom: 18 },
   codeMethod: { fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", color: "#0A0906", background: AMBER, padding: "4px 10px", borderRadius: 6 },
   codePath: { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 15, color: PAPER },
   code: { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 13.5, lineHeight: 1.7, color: "#B3A895", background: "#0d0b06", border: "1px solid rgba(138,126,107,0.15)", borderRadius: 12, padding: "18px 20px", overflowX: "auto", margin: 0 },
   codeOut: { color: "#9fe8d8", borderColor: "rgba(61,220,151,0.2)", background: "rgba(61,220,151,0.04)" },
   codeArrow: { textAlign: "center", color: AMBER, fontSize: 18, padding: "12px 0" },
-  finalCta: { textAlign: "center", padding: "72px 0 96px", maxWidth: 560, margin: "0 auto" },
+  finalCta: { textAlign: "center", padding: "clamp(48px,8vw,72px) 0 clamp(60px,9vw,96px)", maxWidth: 560, margin: "0 auto" },
   appSub: { fontSize: 18, color: "#C9BEAD", lineHeight: 1.6, marginTop: 14 },
 
   footer: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "40px 0 60px", borderTop: "1px solid rgba(138,126,107,0.15)", flexWrap: "wrap", gap: 16 },
