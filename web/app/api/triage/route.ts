@@ -43,7 +43,7 @@ import {
 
 // NOTE: confirm this model id exists in the Gemini API you have access to — a
 // wrong id makes every call fail at the scoring step. Override via env if needed.
-const VISION_MODEL = process.env.GEMINI_VISION_MODEL ?? "gemini-2.5-flash";
+const VISION_MODEL = process.env.GEMINI_VISION_MODEL ?? "gemini-3.1-flash-lite";
 const ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive";
 
 // Perils whose primary confirmation comes from the wildfire oracle.
