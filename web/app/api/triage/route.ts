@@ -14,6 +14,7 @@ import {
 } from "@/lib/damage";
 import { verifyWildfire } from "@/lib/oracles/wildfire";
 import { corroborateFlood } from "@/lib/oracles/flood";
+import { verifyEarthquake } from "@/lib/oracles/earthquake";
 import {
   x402Enabled,
   buildPaymentRequired,
@@ -50,6 +51,8 @@ const ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive";
 const FIRE_PERILS = new Set(["Wildfire", "Fire", "Bushfire"]);
 // Perils where a USGS gauge reading meaningfully corroborates the weather call.
 const FLOOD_PERILS = new Set(["Flood", "Flash Flood"]);
+// Perils confirmed by the USGS earthquake oracle (weather is irrelevant here).
+const QUAKE_PERILS = new Set(["Earthquake", "Quake", "Seismic"]);
 
 const PERIL_THRESHOLDS: Record<string, { wind: number; rain: number }> = {
   "Flash Flood": { wind: 90, rain: 25 },
@@ -108,7 +111,7 @@ export async function GET(req: NextRequest) {
     },
     description:
       "Autonomous disaster damage triage on X Layer. Independently verifies a peril (weather, wildfire, and river-gauge oracles), scores structural damage from a photo, anchors the evidence on-chain, and releases an emergency stablecoin payout.",
-    oracles: ["open-meteo weather", "NASA FIRMS wildfire", "USGS river gauges"],
+    oracles: ["open-meteo weather", "NASA FIRMS wildfire", "USGS river gauges", "USGS earthquake"],
     input: [
       "policyholder",
       "latitude",
@@ -175,7 +178,8 @@ async function runOracles(
 ) {
   const isFirePeril = FIRE_PERILS.has(perilType);
   const isFloodPeril = FLOOD_PERILS.has(perilType);
-  const [weather, wildfire, flood] = await Promise.all([
+  const isQuakePeril = QUAKE_PERILS.has(perilType);
+  const [weather, wildfire, flood, earthquake] = await Promise.all([
     verifyWeather(latitude, longitude, incidentDate, perilType),
     isFirePeril
       ? verifyWildfire({ latitude, longitude, incidentDate })
@@ -183,19 +187,29 @@ async function runOracles(
     isFloodPeril
       ? corroborateFlood({ latitude, longitude, incidentDate })
       : Promise.resolve(null),
+    isQuakePeril
+      ? verifyEarthquake({ latitude, longitude, incidentDate })
+      : Promise.resolve(null),
   ]);
-  // Fire perils rely on FIRMS; everything else on weather.
+  // Fire → FIRMS, earthquake → USGS seismic, everything else → weather.
   const primary = isFirePeril
     ? {
         name: "wildfire",
         available: wildfire?.available ?? false,
         confirmed: wildfire?.confirmed ?? false,
       }
+    : isQuakePeril
+    ? {
+        name: "earthquake",
+        available: earthquake?.available ?? false,
+        confirmed: earthquake?.confirmed ?? false,
+      }
     : { name: "weather", available: weather.available, confirmed: weather.confirmed };
   const oracles = {
     weather,
     wildfire: wildfire ?? undefined,
     flood: flood ?? undefined,
+    earthquake: earthquake ?? undefined,
   };
   return { oracles, primary };
 }

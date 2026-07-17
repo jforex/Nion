@@ -17,7 +17,7 @@ After a disaster, property claims take months. Insurers can't staff the surge �
 
 ## How it works
 
-1. **Verify the peril** — Nion checks the event against independent oracles for the property's exact coordinates and incident date: **weather** (Open-Meteo) for storms/floods, **wildfire** (NASA FIRMS active-fire detections) for fire perils, and **river gauges** (USGS) to corroborate flood claims against a baseline. No independent confirmation, no claim — the event has to be real.
+1. **Verify the peril** — Nion checks the event against independent oracles for the property's exact coordinates and incident date: **weather** (Open-Meteo) for storms/floods, **wildfire** (NASA FIRMS active-fire detections) for fire perils, **earthquake** (USGS seismic events) for quakes, and **river gauges** (USGS) to corroborate flood claims against a baseline. No independent confirmation, no claim — the event has to be real.
 2. **Score the damage** — A vision model reports what it *observes* in the photo: missing roof covering, exposed decking, structural collapse, debris, water damage. Nion derives the damage score from those facts in code — the model never guesses a percentage.
 3. **Anchor the evidence** — The photo's keccak256 fingerprint is written permanently to X Layer. The same image can never be submitted twice; the contract itself rejects it.
 4. **Release relief** — If verified damage clears the 40% threshold, the contract sends stablecoin straight to the policyholder's wallet. Settled on-chain, in the same minute.
@@ -108,14 +108,18 @@ Returns:
 
 `verdict` is `verified` / `rejected` / `inconclusive` (oracle unavailable). Fire perils use the wildfire oracle as primary; flood perils add USGS gauge corroboration.
 
+### Bring-your-own-vault payout
+
+By default the payout comes from the contract's pooled float. To fund it from **your own vault** instead, approve the TriageOracle contract for the payout token once, then add `"payoutVault": "0x…"` to the triage request — the payout is pulled from that vault via `transferFrom` (`settleClaimFrom`). Same fraud guards; the pool is untouched.
+
 ---
 
 ## Architecture
 
 contracts/            Foundry — Solidity on X Layer
-src/TriageOracle.sol    Anchors photo hashes, gates payouts, settles
+src/TriageOracle.sol    Anchors photo hashes, gates payouts, settles (pool + bring-your-own-vault)
 src/MockUSDC.sol        Test stablecoin (6 decimals)
-test/                   4 passing tests: payout, rejection, duplicate, auth
+test/                   7 passing tests: payout, rejection, duplicate, auth, vault payout (×3)
 web/                  Next.js (TypeScript)
 app/api/triage/         Unified endpoint — the full pipeline in one call
 app/api/verify-weather/ Open-Meteo peril verification
@@ -123,6 +127,7 @@ app/api/analyze-damage/ Vision scoring (Gemini)
 app/api/settle/         On-chain anchor + payout
 lib/oracles/wildfire.ts NASA FIRMS active-fire oracle (fire perils)
 lib/oracles/flood.ts    USGS river-gauge flood corroboration
+lib/oracles/earthquake.ts USGS seismic oracle (earthquake perils)
 lib/x402.ts             Server-side x402 payment gate (opt-in)
 lib/damage.ts           Observations → score → payout math
 lib/contracts.ts        viem clients, ABIs, addresses
@@ -183,15 +188,13 @@ npm run dev
 Stated plainly, because they're the next build — not hidden:
 
 - **Testnet only.** Payouts settle in MockUSDC on X Layer testnet.
-- **Single shared payout pool.** The contract is pre-funded and pays every claim from one pot, standing in for an insurer's coverage float. **Per-insurer funded pools** are the next contract iteration.
+- **Payout funding.** Two modes: the contract's shared pre-funded pool (default), or **bring-your-own-vault** — pass `payoutVault` and the payout is pulled from the caller's own vault via `transferFrom` (the vault approves the contract once). Per-insurer isolated pools are the next iteration.
 - **No per-wallet payout cap.** The duplicate-photo guard is the enforced protection today; **per-wallet caps and rate limits** are the next fraud hardening.
 - **Fee not yet billed.** The ASP is listed at 1 USDT/call and the server-side **x402** gate exists (`lib/x402.ts`), but it's **disabled by default and fails closed** — it needs a payment facilitator (`X402_FACILITATOR_URL`) wired up before direct calls are actually charged.
-- **Peril coverage.** Weather (storms/floods), wildfire (NASA FIRMS), and USGS gauge corroboration are live. **Earthquake** (USGS seismic) is the next oracle. Note FIRMS NRT data covers only ~the last two months, and the wildfire oracle is inert without `FIRMS_MAP_KEY`.
+- **Peril coverage.** Weather (storms/floods), wildfire (NASA FIRMS), earthquake (USGS seismic), and USGS gauge flood corroboration are all live. Note FIRMS NRT data covers only ~the last two months, and the wildfire oracle is inert without `FIRMS_MAP_KEY`.
 
 ## Roadmap
 
-1. Wire the x402 gate to a facilitator → real per-call billing
-2. Per-insurer funded pools + per-wallet payout caps
-3. Earthquake oracle (USGS seismic) → another peril class
-4. Mainnet + real stablecoin settlement
+1. Per-insurer funded pools + per-wallet payout caps
+2. Mainnet + real stablecoin settlement
 
