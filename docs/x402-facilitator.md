@@ -1,8 +1,24 @@
 # x402 Facilitator — build spec (Phase 2)
 
-Status: **not built.** This is the settlement service that makes the x402 gate
-in `web/lib/x402.ts` actually collect the fee. Build it **after #5013 is
-accepted** — it moves real funds on X Layer **mainnet (eip155:196)**.
+Status: **BUILT — untested with real funds.** Code lives in
+`web/lib/x402-facilitator.ts` + `web/app/api/x402/verify/route.ts`. Verified in
+dev: a signed EIP-3009 auth passes all field + signature checks and reaches
+settlement (stops only on "insufficient gas" with an unfunded relayer). To go
+live it moves real funds on X Layer **mainnet (eip155:196)** — fund a relayer
+and run a real buyer test first.
+
+## Go-live env (set in Vercel, then redeploy)
+| Var | Value |
+|---|---|
+| `X402_ENABLED` | `true` |
+| `X402_FACILITATOR_URL` | `https://nion-sooty.vercel.app/api/x402` (verifyPayment appends `/verify`) |
+| `X402_RELAYER_KEY` | private key of a wallet holding **OKB for gas** on X Layer mainnet (submits settlement) |
+| `X402_PAY_TO` | your payout wallet — MUST equal the `to` in buyer authorizations |
+| `X402_PRICE_BASE_UNITS` | `1000000` (1.0 USD₮0 @ 6dp) |
+
+⚠️ The settlement call uses the **bytes-signature** `transferWithAuthorization`
+variant. If USD₮0 only exposes the `(v,r,s)` variant, the tx reverts — swap the
+ABI in `lib/x402-facilitator.ts`. Confirm during the first real buyer test.
 
 The client-side (buyer) tooling is provided by OKX (`onchainos payment pay`).
 There is **no OKX-hosted seller facilitator** — the seller (you) redeems the
