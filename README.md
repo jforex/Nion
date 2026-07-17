@@ -133,8 +133,8 @@ app/claim/page.tsx      Live demo claim flow + tracker
 
 | Contract | Address |
 |---|---|
-| TriageOracle | `0xA32A217a04a3222615D2705108a8EC1A2426337E` |
-| MockUSDC | `0x5DA965c6777B5E0aA86367F8eF8F8644D13E02bE` |
+| TriageOracle | `0x3220eeE91D6C00332899C58A0425F5bbF656d691` |
+| MockUSDC | `0x2426e6b69868B5aABb476C01e7ca3b8487Dbe902` |
 | Agent (sole settler) | `0xe1Bce02897b329D8354cacE36831A12A624c4f8D` |
 
 ## Payout logic
