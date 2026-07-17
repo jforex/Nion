@@ -75,14 +75,37 @@ Respond with a single JSON object and nothing else (no markdown, no backticks) u
   "notes": string
 }`;
 
-// Browser-friendly health check. Visiting the URL (a GET) returns service info;
-// the actual triage runs on POST.
-export async function GET() {
+// x402 discovery gate. When the gate is enabled, EVERY method must be able to
+// advertise the 402 challenge — validators probe GET as well as POST, and a
+// non-402 (200/404/405) reads as "not a valid x402 service" (the exact reason
+// two marketplace ASPs were rejected). Returns a 402 response when payment is
+// required and unpaid, otherwise null (caller proceeds).
+async function x402Gate(req: NextRequest): Promise<NextResponse | null> {
+  if (!x402Enabled()) return null;
+  const resource = req.url;
+  const payment = await verifyPayment(req.headers.get("x-payment"), resource);
+  if (payment.ok) return null;
+  return NextResponse.json(buildPaymentRequired(resource), {
+    status: 402,
+    headers: { "x-payment-required": "true" },
+  });
+}
+
+// GET: when the gate is on, emit the 402 challenge (discoverable on GET too).
+// When off (free/open), serve the service health + schema payload directly —
+// which is also the "if it's free, expose it without a gate" guidance.
+export async function GET(req: NextRequest) {
+  const gate = await x402Gate(req);
+  if (gate) return gate;
   return NextResponse.json({
     service: "Nion — Disaster Triage",
     status: "live",
     mode: "Agent-to-MCP (pay-per-call)",
     method: "POST",
+    modes: {
+      triage: "full pipeline — verify peril, score damage, settle payout (default)",
+      verify: "peril verification only — POST { mode:'verify', latitude, longitude, incidentDate, perilType }",
+    },
     description:
       "Autonomous disaster damage triage on X Layer. Independently verifies a peril (weather, wildfire, and river-gauge oracles), scores structural damage from a photo, anchors the evidence on-chain, and releases an emergency stablecoin payout.",
     oracles: ["open-meteo weather", "NASA FIRMS wildfire", "USGS river gauges"],
@@ -99,6 +122,18 @@ export async function GET() {
     ],
     output: ["verdict", "damageScore", "payoutUsd", "oracles", "settlement"],
     chain: "X Layer testnet (1952)",
+  });
+}
+
+// Preflight — let agent callers negotiate the x-payment header cleanly.
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      Allow: "GET, POST, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "content-type, x-payment",
+    },
   });
 }
 
@@ -130,23 +165,51 @@ async function verifyWeather(
   return { available: true, confirmed, windGustKmh: gust, precipitationMm: precip };
 }
 
+// Run the peril oracles concurrently and pick the primary confirmation source.
+// Shared by the full triage flow and the lightweight verify-only mode.
+async function runOracles(
+  latitude: number,
+  longitude: number,
+  incidentDate: string,
+  perilType: string
+) {
+  const isFirePeril = FIRE_PERILS.has(perilType);
+  const isFloodPeril = FLOOD_PERILS.has(perilType);
+  const [weather, wildfire, flood] = await Promise.all([
+    verifyWeather(latitude, longitude, incidentDate, perilType),
+    isFirePeril
+      ? verifyWildfire({ latitude, longitude, incidentDate })
+      : Promise.resolve(null),
+    isFloodPeril
+      ? corroborateFlood({ latitude, longitude, incidentDate })
+      : Promise.resolve(null),
+  ]);
+  // Fire perils rely on FIRMS; everything else on weather.
+  const primary = isFirePeril
+    ? {
+        name: "wildfire",
+        available: wildfire?.available ?? false,
+        confirmed: wildfire?.confirmed ?? false,
+      }
+    : { name: "weather", available: weather.available, confirmed: weather.confirmed };
+  const oracles = {
+    weather,
+    wildfire: wildfire ?? undefined,
+    flood: flood ?? undefined,
+  };
+  return { oracles, primary };
+}
+
 export async function POST(req: NextRequest) {
   try {
-    // ── x402 PAYMENT GATE ───────────────────────────────────────────────────
-    // Disabled by default (see lib/x402.ts). When enabled, an unpaid call gets
-    // a spec-shaped 402 challenge; a paid call is verified before any work runs.
-    if (x402Enabled()) {
-      const resource = new URL(req.url).pathname;
-      const payment = await verifyPayment(req.headers.get("x-payment"), resource);
-      if (!payment.ok) {
-        return NextResponse.json(buildPaymentRequired(resource), {
-          status: 402,
-          headers: { "x-payment-required": "true" },
-        });
-      }
-    }
+    // ── x402 PAYMENT GATE (before any body parsing, per x402 spec) ───────────
+    // Disabled by default. When on, an unpaid call gets the 402 challenge even
+    // for a malformed/empty body — a wrong body must 402, never 400/405.
+    const gate = await x402Gate(req);
+    if (gate) return gate;
 
     const {
+      mode,
       policyholder,
       latitude,
       longitude,
@@ -158,7 +221,42 @@ export async function POST(req: NextRequest) {
       mimeType,
     } = await req.json();
 
-    // validate
+    // ── VERIFY-ONLY MODE ────────────────────────────────────────────────────
+    // mode:"verify" runs just the peril oracles (no photo, no scoring, no
+    // on-chain settlement) and returns whether the event is independently real.
+    // Lets agents call Nion purely for event verification.
+    if (mode === "verify") {
+      if (
+        typeof latitude !== "number" ||
+        typeof longitude !== "number" ||
+        !incidentDate
+      ) {
+        return NextResponse.json(
+          { error: "verify mode requires: latitude, longitude, incidentDate (perilType optional)." },
+          { status: 400 }
+        );
+      }
+      const { oracles, primary } = await runOracles(
+        latitude,
+        longitude,
+        incidentDate,
+        perilType ?? ""
+      );
+      const verdict = !primary.available
+        ? "inconclusive"
+        : primary.confirmed
+        ? "verified"
+        : "rejected";
+      return NextResponse.json({
+        mode: "verify",
+        verdict,
+        perilConfirmed: primary.confirmed,
+        primarySource: primary.name,
+        oracles,
+      });
+    }
+
+    // validate (full triage)
     if (
       !policyholder ||
       typeof latitude !== "number" ||
@@ -178,34 +276,12 @@ export async function POST(req: NextRequest) {
     }
 
     // ── STEP 1: verify the peril across independent oracles ─────────────────
-    const isFirePeril = FIRE_PERILS.has(perilType);
-    const isFloodPeril = FLOOD_PERILS.has(perilType);
-
-    // Run the relevant oracles concurrently.
-    const [weather, wildfire, flood] = await Promise.all([
-      verifyWeather(latitude, longitude, incidentDate, perilType),
-      isFirePeril
-        ? verifyWildfire({ latitude, longitude, incidentDate })
-        : Promise.resolve(null),
-      isFloodPeril
-        ? corroborateFlood({ latitude, longitude, incidentDate })
-        : Promise.resolve(null),
-    ]);
-
-    // Primary confirmation: fire perils rely on FIRMS; everything else on weather.
-    const primary = isFirePeril
-      ? {
-          name: "wildfire",
-          available: wildfire?.available ?? false,
-          confirmed: wildfire?.confirmed ?? false,
-        }
-      : { name: "weather", available: weather.available, confirmed: weather.confirmed };
-
-    const oracles = {
-      weather,
-      wildfire: wildfire ?? undefined,
-      flood: flood ?? undefined,
-    };
+    const { oracles, primary } = await runOracles(
+      latitude,
+      longitude,
+      incidentDate,
+      perilType
+    );
 
     // If the primary oracle couldn't run, don't guess — return inconclusive.
     if (!primary.available) {

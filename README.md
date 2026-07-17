@@ -75,6 +75,39 @@ Returns:
 
 An insurer's claims system loops its backlog through this endpoint — machine to machine, no UI.
 
+### Verify-only mode
+
+Call the **same endpoint** just to confirm a peril is independently real — no photo, no damage scoring, no on-chain settlement. Useful for agents that only need event verification.
+
+```bash
+POST https://nion-sooty.vercel.app/api/triage
+Content-Type: application/json
+
+{
+  "mode":         "verify",
+  "latitude":     27.9506,
+  "longitude":    -82.4572,
+  "incidentDate": "2024-10-09",
+  "perilType":    "Hurricane"
+}
+```
+
+Returns:
+
+```json
+{
+  "mode":          "verify",
+  "verdict":       "verified",
+  "perilConfirmed": true,
+  "primarySource": "weather",
+  "oracles": {
+    "weather": { "confirmed": true, "windGustKmh": 153, "precipitationMm": 225.9 }
+  }
+}
+```
+
+`verdict` is `verified` / `rejected` / `inconclusive` (oracle unavailable). Fire perils use the wildfire oracle as primary; flood perils add USGS gauge corroboration.
+
 ---
 
 ## Architecture

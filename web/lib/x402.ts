@@ -32,23 +32,48 @@ export interface PaymentRequired {
     payTo: string;
     asset: string;
     maxTimeoutSeconds: number;
+    // EIP-3009 exact-scheme needs the token's EIP-712 domain so the buyer can
+    // sign transferWithAuthorization. `assetTransferMethod` tells the payer CLI
+    // which scheme to sign (exact + EIP-3009).
+    extra: { name: string; version: string; assetTransferMethod: string };
   }>;
 }
 
+// OKX's fixed fee/settlement token on X Layer (same asset cited in the
+// marketplace rejections and in this ASP's own service config).
+const OKX_FEE_ASSET = "0x779ded0c9e1022225f8e0630b35a9b54be713736";
+const XLAYER_CAIP2 = "eip155:196";
+
+// Builds a spec-correct x402 v1 challenge with a POPULATED `accepts` entry —
+// the two things the marketplace rejections flagged (empty accepts / no payable
+// asset). A 0-fee service still advertises a zero-amount entry, never [].
+//
+// GO-LIVE ENV (until set, honoring payment fails closed — see verifyPayment):
+//   X402_PAY_TO        your payout wallet (receives the fee)
+//   X402_PRICE_BASE_UNITS  fee in base units (e.g. "1000000" = 1.0 @ 6dp; "0" = free)
+//   X402_ASSET_NAME / X402_ASSET_VERSION  the fee token's EIP-712 domain (must match on-chain)
+//   X402_ASSET / X402_NETWORK  override only if OKX changes the fee asset/chain
 export function buildPaymentRequired(resource: string): PaymentRequired {
   return {
     x402Version: 1,
     accepts: [
       {
         scheme: "exact",
-        network: process.env.X402_NETWORK ?? "xlayer",
-        maxAmountRequired: process.env.X402_PRICE_BASE_UNITS ?? "1000000", // 1 USDC (6dp)
+        network: process.env.X402_NETWORK ?? XLAYER_CAIP2,
+        maxAmountRequired: process.env.X402_PRICE_BASE_UNITS ?? "1000000",
         resource,
         description: "Nion — Disaster Triage: one triage + settlement call.",
         mimeType: "application/json",
         payTo: process.env.X402_PAY_TO ?? "",
-        asset: process.env.X402_ASSET ?? "",
+        asset: process.env.X402_ASSET ?? OKX_FEE_ASSET,
         maxTimeoutSeconds: 120,
+        extra: {
+          // Confirmed on-chain: fee token 0x779d…3736 is "USD₮0" (bridged USDT,
+          // 6 decimals), EIP-712 domain version "1", supports EIP-3009.
+          name: process.env.X402_ASSET_NAME ?? "USD₮0",
+          version: process.env.X402_ASSET_VERSION ?? "1",
+          assetTransferMethod: "eip3009",
+        },
       },
     ],
   };

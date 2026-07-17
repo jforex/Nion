@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 /test-roof.jpg
 /storm2.jpg
+
+# test images
+web/*.jpg
+*.jpg
