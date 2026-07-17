@@ -1,6 +1,6 @@
 # Nion
 
-**Autonomous disaster claims agent on X Layer.** Send it a damage photo and a location — it verifies the peril across independent oracles (weather, wildfire, and river gauges), scores the damage with a vision model, anchors the evidence on-chain, and releases an emergency stablecoin payout to the policyholder's wallet. One call. No adjuster.
+**Autonomous disaster claims agent on X Layer.** Send it a damage photo and a location — it verifies the peril across four independent oracles (weather, wildfire, earthquake, river gauges), scores the damage with a vision model, anchors the evidence on-chain, and releases an emergency stablecoin payout (the fast first tranche, not final settlement) to the policyholder's wallet. One call. No adjuster.
 
 Built for the **OKX.AI Genesis Hackathon**.
 
@@ -24,7 +24,7 @@ After a disaster, property claims take months. Insurers can't staff the surge �
 
 ## Fraud resistance
 
-- **Independent event verification.** Payouts only fire when third-party records — weather, satellite fire detections, or river-gauge readings — confirm severe conditions at the exact coordinates. Two agreeing sources (e.g. rainfall + gauge anomaly) are harder to fabricate than one.
+- **Independent event verification.** Payouts only fire when third-party records — weather, satellite fire detections, USGS earthquake events, or river-gauge readings — confirm the peril at the exact coordinates. Two agreeing sources (e.g. rainfall + gauge anomaly) are harder to fabricate than one.
 - **On-chain photo anchoring.** Every image hash is stored in the contract. Reusing a photo for a second claim reverts.
 - **Single trusted settler.** `settleClaim` accepts calls from one authorized agent wallet only. No one else can move funds.
 - **Derived, not guessed, scores.** The LLM reports observations; the payout math runs in code and is auditable.

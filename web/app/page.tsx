@@ -25,7 +25,7 @@ function useReveal() {
 }
 
 const STEPS = [
-  { n: "01", title: "Verify the peril", body: "Nion queries historical weather records for the property's exact coordinates and the incident date. If no severe weather is on file, the claim stops here — the event has to be independently real." },
+  { n: "01", title: "Verify the peril", body: "Nion checks the property's exact coordinates and incident date against four independent oracles — weather (Open-Meteo), wildfire (NASA FIRMS), earthquake and river gauges (USGS). If no source confirms the event, the claim stops here — it has to be independently real." },
   { n: "02", title: "Score the damage", body: "A vision model reports what it observes in the photo: missing roof covering, exposed decking, structural collapse, debris, water damage. Nion derives the damage score from those facts — the model never guesses a number." },
   { n: "03", title: "Anchor the evidence", body: "The photo's fingerprint is written permanently to X Layer. The same image can never be submitted for a second claim — the contract itself rejects it." },
   { n: "04", title: "Release the first tranche", body: "If verified damage clears the threshold, the contract releases an emergency payout — a fraction of the coverage limit, sized by severity — straight to the policyholder's wallet. Final claim settlement stays with the insurer; Nion solves the speed problem for the money people need now." },
@@ -122,7 +122,7 @@ export default function Landing() {
             <div style={s.kicker}>Fraud-resistant by design</div>
             <h2 style={s.h2}>Every claim leaves a permanent record.</h2>
             <div style={s.proofGrid} className="proof-grid">
-              <Proof title="The event is verified" body="Payouts trigger only when independent weather records confirm severe conditions at the property's exact coordinates." />
+              <Proof title="The event is verified" body="Payouts trigger only when independent oracles — weather, wildfire, earthquake, or river gauges — confirm the peril at the property's exact coordinates." />
               <Proof title="The photo is anchored" body="Each image's fingerprint is written to X Layer. Reusing a photo for a second claim is rejected by the contract itself." />
               <Proof title="Only the agent can settle" body="The payout function accepts calls from one trusted agent wallet. No one else can move funds." />
             </div>
@@ -134,7 +134,7 @@ export default function Landing() {
             <div style={s.kicker}>Hire the agent</div>
             <h2 style={s.h2}>One call. Any agent.</h2>
             <p style={s.appSub}>
-              This is the product. An insurer&apos;s claims system loops its backlog through one endpoint — each call returns a verdict and an on-chain settlement, machine to machine. The web form below is just a window into the same agent. Registered on the OKX.AI marketplace as ASP #5013.
+              This is the product. An insurer&apos;s claims system loops its backlog through one endpoint — each call returns a verdict and an on-chain payout: the emergency tranche, not final settlement. Call it in verify-only mode to just confirm a peril, and fund payouts from a shared pool or the caller&apos;s own vault. The web form below is a window into the same agent. Registered on the OKX.AI marketplace as ASP #5013.
             </p>
           </div>
           <div style={s.codeCard} className="code-card" data-reveal>
