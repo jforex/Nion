@@ -55,4 +55,40 @@ contract TriageOracleTest is Test {
         vm.expectRevert("TriageOracle: caller is not the agent");
         oracle.settleClaim(victim, photo, 72, PAYOUT);
     }
+
+    // --- bring-your-own-vault ---
+
+    function test_VaultPayout_PaysFromVault() public {
+        address vault = makeAddr("insurer-vault");
+        token.transfer(vault, 10_000 * 10 ** 6);       // fund the caller's vault
+        vm.prank(vault);
+        token.approve(address(oracle), PAYOUT);        // vault approves the oracle
+
+        uint256 poolBefore = token.balanceOf(address(oracle));
+        bytes32 photo = keccak256("photo-vault");
+        vm.prank(agent);
+        bool paid = oracle.settleClaimFrom(vault, victim, photo, 72, PAYOUT);
+
+        assertTrue(paid);
+        assertEq(token.balanceOf(victim), PAYOUT);
+        assertEq(token.balanceOf(vault), 10_000 * 10 ** 6 - PAYOUT);
+        assertEq(token.balanceOf(address(oracle)), poolBefore); // pool untouched
+    }
+
+    function test_VaultPayout_RevertsWithoutApproval() public {
+        address vault = makeAddr("broke-vault");
+        token.transfer(vault, 10_000 * 10 ** 6);       // funded but NOT approved
+        bytes32 photo = keccak256("photo-noapprove");
+        vm.prank(agent);
+        vm.expectRevert(); // ERC20 insufficient allowance
+        oracle.settleClaimFrom(vault, victim, photo, 72, PAYOUT);
+    }
+
+    function test_VaultPayout_NonAgent_Reverts() public {
+        address vault = makeAddr("v");
+        bytes32 photo = keccak256("photo-vault-auth");
+        vm.prank(address(0xBAD));
+        vm.expectRevert("TriageOracle: caller is not the agent");
+        oracle.settleClaimFrom(vault, victim, photo, 72, PAYOUT);
+    }
 }

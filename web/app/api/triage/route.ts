@@ -219,6 +219,7 @@ export async function POST(req: NextRequest) {
       deductibleUsd = 0,
       imageBase64,
       mimeType,
+      payoutVault, // optional: bring-your-own-vault — funds the payout via transferFrom
     } = await req.json();
 
     // ── VERIFY-ONLY MODE ────────────────────────────────────────────────────
@@ -366,15 +367,28 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // Bring-your-own-vault: if a valid payoutVault is supplied, pull the payout
+    // from it (transferFrom — the vault must have approved the contract);
+    // otherwise pay from the contract's own pooled float (default).
+    const useVault =
+      typeof payoutVault === "string" && /^0x[0-9a-fA-F]{40}$/.test(payoutVault);
+
     // Submit the payout, then wait (bounded) for the receipt so we report the
     // TRUE settlement outcome — never claim "paid" for a tx we didn't confirm.
     const wallet = getAgentWalletClient();
-    const txHash = await wallet.writeContract({
-      address: TRIAGE_ORACLE_ADDRESS,
-      abi: TRIAGE_ORACLE_ABI,
-      functionName: "settleClaim",
-      args: [policyholder as `0x${string}`, photoHash, damageScore, payoutAmount],
-    });
+    const txHash = useVault
+      ? await wallet.writeContract({
+          address: TRIAGE_ORACLE_ADDRESS,
+          abi: TRIAGE_ORACLE_ABI,
+          functionName: "settleClaimFrom",
+          args: [payoutVault as `0x${string}`, policyholder as `0x${string}`, photoHash, damageScore, payoutAmount],
+        })
+      : await wallet.writeContract({
+          address: TRIAGE_ORACLE_ADDRESS,
+          abi: TRIAGE_ORACLE_ABI,
+          functionName: "settleClaim",
+          args: [policyholder as `0x${string}`, photoHash, damageScore, payoutAmount],
+        });
     const explorerUrl = `https://www.okx.com/web3/explorer/xlayer-test/tx/${txHash}`;
 
     let settlement: {

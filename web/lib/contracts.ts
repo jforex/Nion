@@ -20,9 +20,9 @@ export const xLayerTestnet = defineChain({
 
 // ── Deployed contract addresses ───────────────────────────────────────────
 export const MOCK_USDC_ADDRESS =
-  "0x5DA965c6777B5E0aA86367F8eF8F8644D13E02bE" as const;
+  "0x2426e6b69868B5aABb476C01e7ca3b8487Dbe902" as const;
 export const TRIAGE_ORACLE_ADDRESS =
-  "0xA32A217a04a3222615D2705108a8EC1A2426337E" as const;
+  "0x3220eeE91D6C00332899C58A0425F5bbF656d691" as const;
 
 // ── ABIs (only the functions we actually call) ────────────────────────────
 export const TRIAGE_ORACLE_ABI = [
@@ -31,6 +31,19 @@ export const TRIAGE_ORACLE_ABI = [
     name: "settleClaim",
     stateMutability: "nonpayable",
     inputs: [
+      { name: "policyholder", type: "address" },
+      { name: "photoHash", type: "bytes32" },
+      { name: "damagePercent", type: "uint8" },
+      { name: "payoutAmount", type: "uint256" },
+    ],
+    outputs: [{ name: "paid", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "settleClaimFrom",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "vault", type: "address" },
       { name: "policyholder", type: "address" },
       { name: "photoHash", type: "bytes32" },
       { name: "damagePercent", type: "uint8" },

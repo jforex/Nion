@@ -37,6 +37,12 @@ contract TriageOracle is Ownable {
         uint256 payoutAmount
     );
     event ClaimRejected(bytes32 photoHash, uint8 damagePercent, string reason);
+    event ClaimSettledFromVault(
+        uint256 indexed claimId,
+        address indexed vault,
+        address indexed policyholder,
+        uint256 payoutAmount
+    );
     event AgentUpdated(address newAgent);
 
     // --- guard: only the trusted agent may call ---
@@ -90,6 +96,49 @@ contract TriageOracle is Ownable {
         );
 
         emit ClaimSettled(id, policyholder, photoHash, damagePercent, payoutAmount);
+        return true;
+    }
+
+    /// @notice Bring-your-own-vault settlement. Identical fraud guards to
+    ///         settleClaim, but the payout is pulled from `vault` via
+    ///         transferFrom instead of the contract's own pooled float. The
+    ///         vault owner must have approved this contract for at least
+    ///         `payoutAmount` of the payout token beforehand.
+    /// @param vault the caller-controlled address funding this payout
+    function settleClaimFrom(
+        address vault,
+        address policyholder,
+        bytes32 photoHash,
+        uint8 damagePercent,
+        uint256 payoutAmount
+    ) external onlyAgent returns (bool paid) {
+        require(vault != address(0), "TriageOracle: zero vault");
+        require(!anchored[photoHash], "TriageOracle: photo already used");
+
+        anchored[photoHash] = true;
+
+        if (damagePercent < damageThreshold) {
+            emit ClaimRejected(photoHash, damagePercent, "below threshold");
+            return false;
+        }
+
+        uint256 id = ++claimCount;
+        claims[id] = Claim({
+            policyholder: policyholder,
+            photoHash: photoHash,
+            damagePercent: damagePercent,
+            payoutAmount: payoutAmount,
+            timestamp: block.timestamp
+        });
+
+        // Pull from the caller's vault (needs prior approve on this contract).
+        require(
+            payoutToken.transferFrom(vault, policyholder, payoutAmount),
+            "TriageOracle: vault payout failed"
+        );
+
+        emit ClaimSettled(id, policyholder, photoHash, damagePercent, payoutAmount);
+        emit ClaimSettledFromVault(id, vault, policyholder, payoutAmount);
         return true;
     }
 
