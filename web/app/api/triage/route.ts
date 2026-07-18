@@ -15,11 +15,6 @@ import {
 import { verifyWildfire } from "@/lib/oracles/wildfire";
 import { corroborateFlood } from "@/lib/oracles/flood";
 import { verifyEarthquake } from "@/lib/oracles/earthquake";
-import {
-  x402Enabled,
-  buildPaymentRequired,
-  verifyPayment,
-} from "@/lib/x402";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Nion — Disaster Triage · unified A2MCP service endpoint
@@ -83,23 +78,10 @@ Respond with a single JSON object and nothing else (no markdown, no backticks) u
 // non-402 (200/404/405) reads as "not a valid x402 service" (the exact reason
 // two marketplace ASPs were rejected). Returns a 402 response when payment is
 // required and unpaid, otherwise null (caller proceeds).
-async function x402Gate(req: NextRequest): Promise<NextResponse | null> {
-  if (!x402Enabled()) return null;
-  const resource = req.url;
-  const payment = await verifyPayment(req.headers.get("x-payment"), resource);
-  if (payment.ok) return null;
-  return NextResponse.json(buildPaymentRequired(resource), {
-    status: 402,
-    headers: { "x-payment-required": "true" },
-  });
-}
-
-// GET: when the gate is on, emit the 402 challenge (discoverable on GET too).
-// When off (free/open), serve the service health + schema payload directly —
-// which is also the "if it's free, expose it without a gate" guidance.
-export async function GET(req: NextRequest) {
-  const gate = await x402Gate(req);
-  if (gate) return gate;
+// ── OPEN endpoint. This route is always free (no x402 gate) — the "direct use"
+// endpoint. The paid, x402-gated version lives at /api/triage/x402 and reuses
+// this same POST pipeline after payment. ─────────────────────────────────────
+export async function GET() {
   return NextResponse.json({
     service: "Nion — Disaster Triage",
     status: "live",
@@ -216,12 +198,6 @@ async function runOracles(
 
 export async function POST(req: NextRequest) {
   try {
-    // ── x402 PAYMENT GATE (before any body parsing, per x402 spec) ───────────
-    // Disabled by default. When on, an unpaid call gets the 402 challenge even
-    // for a malformed/empty body — a wrong body must 402, never 400/405.
-    const gate = await x402Gate(req);
-    if (gate) return gate;
-
     const {
       mode,
       policyholder,

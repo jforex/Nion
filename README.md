@@ -121,7 +121,8 @@ src/TriageOracle.sol    Anchors photo hashes, gates payouts, settles (pool + bri
 src/MockUSDC.sol        Test stablecoin (6 decimals)
 test/                   7 passing tests: payout, rejection, duplicate, auth, vault payout (×3)
 web/                  Next.js (TypeScript)
-app/api/triage/         Unified endpoint — the full pipeline in one call
+app/api/triage/         Open endpoint — full pipeline, free direct use
+app/api/triage/x402/    Paid endpoint — always x402-gated; reuses the open pipeline after payment
 app/api/verify-weather/ Open-Meteo peril verification
 app/api/analyze-damage/ Vision scoring (Gemini)
 app/api/settle/         On-chain anchor + payout
