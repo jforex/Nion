@@ -45,3 +45,4 @@ next-env.d.ts
 # test images
 web/*.jpg
 *.jpg
+pay-test.mjs

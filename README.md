@@ -4,10 +4,11 @@
 
 Built for the **OKX.AI Genesis Hackathon**.
 
-- **Live site:** https://nion-sooty.vercel.app
-- **API endpoint:** `POST https://nion-sooty.vercel.app/api/triage`
+- **Live site:** https://www.nion-snooty.xyz
+- **API — open (free):** `POST https://www.nion-snooty.xyz/api/triage`
+- **API — paid (x402):** `POST https://www.nion-snooty.xyz/api/triage/x402`
 - **Marketplace:** ASP **#5013** — Nion — Disaster Triage (OKX.AI)
-- **Network:** X Layer testnet (chain 1952)
+- **Networks:** peril payout settles on X Layer testnet (1952); the x402 fee settles in USD₮0 on X Layer mainnet (196)
 
 ---
 
@@ -36,7 +37,7 @@ After a disaster, property claims take months. Insurers can't staff the surge �
 Nion isn't only a web app — it's a callable service any agent can hire.
 
 ```bash
-POST https://nion-sooty.vercel.app/api/triage
+POST https://www.nion-snooty.xyz/api/triage
 Content-Type: application/json
 
 {
@@ -80,7 +81,7 @@ An insurer's claims system loops its backlog through this endpoint — machine t
 Call the **same endpoint** just to confirm a peril is independently real — no photo, no damage scoring, no on-chain settlement. Useful for agents that only need event verification.
 
 ```bash
-POST https://nion-sooty.vercel.app/api/triage
+POST https://www.nion-snooty.xyz/api/triage
 Content-Type: application/json
 
 {
@@ -112,6 +113,15 @@ Returns:
 
 By default the payout comes from the contract's pooled float. To fund it from **your own vault** instead, approve the TriageOracle contract for the payout token once, then add `"payoutVault": "0x…"` to the triage request — the payout is pulled from that vault via `transferFrom` (`settleClaimFrom`). Same fraud guards; the pool is untouched.
 
+### Paid access (x402)
+
+Two endpoints, one pipeline:
+
+- **`/api/triage`** — open, free. Direct use (full triage + verify-only mode).
+- **`/api/triage/x402`** — the paid A2MCP service. Always returns an HTTP `402` challenge; a caller pays **1 USD₮0** on X Layer mainnet via **x402 (exact scheme, EIP-3009)**, then replays with an `X-PAYMENT` header and gets the same triage response.
+
+A self-hosted facilitator (`app/api/x402/verify`) verifies the buyer's EIP-3009 authorization and settles it on-chain (`transferWithAuthorization`) to the ASP's payout wallet, with a relayer paying gas. This path is **verified end-to-end** — a real 1 USD₮0 payment settles on-chain before the service runs.
+
 ---
 
 ## Architecture
@@ -129,7 +139,9 @@ app/api/settle/         On-chain anchor + payout
 lib/oracles/wildfire.ts NASA FIRMS active-fire oracle (fire perils)
 lib/oracles/flood.ts    USGS river-gauge flood corroboration
 lib/oracles/earthquake.ts USGS seismic oracle (earthquake perils)
-lib/x402.ts             Server-side x402 payment gate (opt-in)
+app/api/x402/verify/    x402 facilitator — verifies EIP-3009 auth + settles the fee on-chain
+lib/x402.ts             x402 402-challenge builder + payment verification
+lib/x402-facilitator.ts EIP-3009 verify + transferWithAuthorization settlement (X Layer mainnet)
 lib/damage.ts           Observations → score → payout math
 lib/contracts.ts        viem clients, ABIs, addresses
 app/page.tsx            Landing
@@ -191,7 +203,7 @@ Stated plainly, because they're the next build — not hidden:
 - **Testnet only.** Payouts settle in MockUSDC on X Layer testnet.
 - **Payout funding.** Two modes: the contract's shared pre-funded pool (default), or **bring-your-own-vault** — pass `payoutVault` and the payout is pulled from the caller's own vault via `transferFrom` (the vault approves the contract once). Per-insurer isolated pools are the next iteration.
 - **No per-wallet payout cap.** The duplicate-photo guard is the enforced protection today; **per-wallet caps and rate limits** are the next fraud hardening.
-- **Fee not yet billed.** The ASP is listed at 1 USDT/call and the server-side **x402** gate exists (`lib/x402.ts`), but it's **disabled by default and fails closed** — it needs a payment facilitator (`X402_FACILITATOR_URL`) wired up before direct calls are actually charged.
+- **Testnet payout vs. mainnet fee.** The **x402 fee is live and real** — the paid endpoint charges 1 USD₮0 on X Layer **mainnet**, verified end-to-end (a real payment settles via the facilitator). But the **triage payout** it gates still settles in MockUSDC on X Layer **testnet**. Aligning both on mainnet is the migration step.
 - **Peril coverage.** Weather (storms/floods), wildfire (NASA FIRMS), earthquake (USGS seismic), and USGS gauge flood corroboration are all live. Note FIRMS NRT data covers only ~the last two months, and the wildfire oracle is inert without `FIRMS_MAP_KEY`.
 
 ## Roadmap

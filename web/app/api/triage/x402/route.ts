@@ -11,11 +11,10 @@ import { POST as runTriage } from "../route";
 // — which fails closed if no facilitator is configured, so nobody slips through
 // unpaid and no settlement fires until you've wired X402_FACILITATOR_URL. ──────
 
-function challenge(req: NextRequest) {
-  return NextResponse.json(buildPaymentRequired(req.url), {
-    status: 402,
-    headers: { "x-payment-required": "true" },
-  });
+function challenge(req: NextRequest, reason?: string) {
+  const headers: Record<string, string> = { "x-payment-required": "true" };
+  if (reason) headers["x-x402-reason"] = reason; // debug: why an unpaid call was rejected
+  return NextResponse.json(buildPaymentRequired(req.url), { status: 402, headers });
 }
 
 // GET always advertises the 402 challenge (discoverable on GET, as validators expect).
@@ -25,7 +24,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const payment = await verifyPayment(req.headers.get("x-payment"), req.url);
-  if (!payment.ok) return challenge(req);
+  if (!payment.ok) return challenge(req, payment.reason);
   // Paid — run the same triage pipeline as the open endpoint.
   return runTriage(req);
 }

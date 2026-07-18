@@ -89,10 +89,19 @@ function decodePayment(header: string):
 }
 
 export async function verifyAndSettle(paymentHeader: string): Promise<SettleResult> {
-  const relayerKey = process.env.X402_RELAYER_KEY;
   const payTo = process.env.X402_PAY_TO;
-  if (!relayerKey || !payTo || !isAddress(payTo)) {
-    return { valid: false, reason: "facilitator not configured (X402_RELAYER_KEY / X402_PAY_TO)" };
+  // Normalize the relayer key — tolerate stray quotes/whitespace and a missing
+  // 0x prefix from env paste, then validate it's a real 32-byte hex key.
+  let relayerKey = process.env.X402_RELAYER_KEY?.trim().replace(/^['"]|['"]$/g, "");
+  if (relayerKey && !relayerKey.startsWith("0x")) relayerKey = "0x" + relayerKey;
+  if (!payTo || !isAddress(payTo)) {
+    return { valid: false, reason: "facilitator not configured (X402_PAY_TO)" };
+  }
+  if (!relayerKey || !/^0x[0-9a-fA-F]{64}$/.test(relayerKey)) {
+    return {
+      valid: false,
+      reason: "X402_RELAYER_KEY is not a valid 32-byte hex private key — check the Vercel env value (0x + 64 hex chars, no quotes/spaces)",
+    };
   }
 
   const decoded = decodePayment(paymentHeader);

@@ -134,7 +134,7 @@ export default function Landing() {
             <div style={s.kicker}>Hire the agent</div>
             <h2 style={s.h2}>One call. Any agent.</h2>
             <p style={s.appSub}>
-              This is the product. An insurer&apos;s claims system loops its backlog through one endpoint — each call returns a verdict and an on-chain payout: the emergency tranche, not final settlement. Call it in verify-only mode to just confirm a peril, and fund payouts from a shared pool or the caller&apos;s own vault. The web form below is a window into the same agent. Registered on the OKX.AI marketplace as ASP #5013.
+              This is the product. An insurer&apos;s claims system loops its backlog through one endpoint — each call returns a verdict and an on-chain payout: the emergency tranche, not final settlement. Call it free and direct at <code>/api/triage</code>, or as a paid x402 service at <code>/api/triage/x402</code> (1 USD₮0 per call, settled on X Layer). Run it in verify-only mode to just confirm a peril, and fund payouts from a shared pool or the caller&apos;s own vault. The form below is a window into the same agent. Registered on the OKX.AI marketplace as ASP #5013.
             </p>
           </div>
           <div style={s.codeCard} className="code-card" data-reveal>
