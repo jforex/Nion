@@ -247,7 +247,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // validate (full triage)
+    // validate (full triage). A minimal/empty body must NOT dead-end in a bare
+    // 400 — an x402 buyer replaying the endpoint needs a usable deliverable.
+    // Return 200 with a self-describing result: what the service does, the
+    // inputs it needs, and how to run verify-only.
     if (
       !policyholder ||
       typeof latitude !== "number" ||
@@ -257,13 +260,18 @@ export async function POST(req: NextRequest) {
       !mimeType ||
       typeof coverageLimitUsd !== "number"
     ) {
-      return NextResponse.json(
-        {
-          error:
-            "Required: policyholder, latitude, longitude, incidentDate, coverageLimitUsd, imageBase64, mimeType.",
-        },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        service: "Nion — Disaster Triage",
+        verdict: "needs_input",
+        message:
+          "No claim inputs provided. Send the fields below to run a full triage, or add \"mode\":\"verify\" (with latitude, longitude, incidentDate, perilType) for a peril-only check that needs no photo.",
+        requiredInputs: [
+          "policyholder", "latitude", "longitude", "incidentDate",
+          "perilType", "coverageLimitUsd", "imageBase64", "mimeType",
+        ],
+        oracles: ["weather", "wildfire (NASA FIRMS)", "earthquake (USGS)", "river gauges (USGS)"],
+        output: ["verdict", "damageScore", "payoutUsd", "oracles", "settlement"],
+      });
     }
 
     // ── STEP 1: verify the peril across independent oracles ─────────────────
