@@ -62,7 +62,7 @@ export function buildPaymentRequired(resource: string): PaymentRequired {
         network: process.env.X402_NETWORK ?? XLAYER_CAIP2,
         maxAmountRequired: process.env.X402_PRICE_BASE_UNITS ?? "1000000",
         resource,
-        description: "Nion — Disaster Triage: one triage + settlement call.",
+        description: "Nion — Emergency Disaster Payout: one triage call (emergency relief, not final settlement).",
         mimeType: "application/json",
         payTo: process.env.X402_PAY_TO ?? "",
         asset: process.env.X402_ASSET ?? OKX_FEE_ASSET,
