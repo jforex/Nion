@@ -124,6 +124,7 @@ export default function Landing() {
             <div style={s.proofGrid} className="proof-grid">
               <Proof title="The event is verified" body="Payouts trigger only when independent oracles — weather, wildfire, earthquake, or river gauges — confirm the peril at the property's exact coordinates." />
               <Proof title="The photo is anchored" body="Each image's fingerprint is written to X Layer. Reusing a photo for a second claim is rejected by the contract itself." />
+              <Proof title="Coverage is insurer-capped" body="Insurers issue a signed coverage code per policyholder. The payout can never exceed what they authorized, and each code pays out exactly once — enforced on-chain." />
               <Proof title="Only the agent can settle" body="The payout function accepts calls from one trusted agent wallet. No one else can move funds." />
             </div>
           </div>
@@ -289,7 +290,7 @@ const s: Record<string, React.CSSProperties> = {
   stepText: { fontSize: 17, lineHeight: 1.6, color: "#B3A895", maxWidth: 560 },
 
   proofCard: { background: "linear-gradient(180deg,#181309,#141109)", border: "1px solid rgba(138,126,107,0.18)", borderRadius: 20, padding: "clamp(26px,4.5vw,44px) clamp(22px,4vw,40px)", boxShadow: "0 40px 100px -50px rgba(0,0,0,0.8), inset 0 1px 0 rgba(245,239,230,0.04)" },
-  proofGrid: { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "clamp(24px,3vw,32px)", marginTop: 36 },
+  proofGrid: { display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: "clamp(24px,3vw,32px)", marginTop: 36 },
   proofItem: {},
   proofCheck: { width: 30, height: 30, borderRadius: "50%", background: "rgba(61,220,151,0.12)", border: "1px solid rgba(61,220,151,0.3)", color: GREEN, display: "grid", placeItems: "center", fontSize: 15, fontWeight: 700, marginBottom: 16 },
   proofTitle: { fontFamily: "'Space Grotesk',sans-serif", fontSize: 19, fontWeight: 600, marginBottom: 8 },

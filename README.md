@@ -28,6 +28,7 @@ After a disaster, property claims take months. Insurers can't staff the surge �
 - **Independent event verification.** Payouts only fire when third-party records — weather, satellite fire detections, USGS earthquake events, or river-gauge readings — confirm the peril at the exact coordinates. Two agreeing sources (e.g. rainfall + gauge anomaly) are harder to fabricate than one.
 - **On-chain photo anchoring.** Every image hash is stored in the contract. Reusing a photo for a second claim reverts.
 - **Single trusted settler.** `settleClaim` accepts calls from one authorized agent wallet only. No one else can move funds.
+- **Insurer-capped coverage.** Insurers issue a signed coverage code per policyholder; the contract verifies the signature, caps the payout at the authorized amount, and burns the code after one claim. See [docs/insurer-integration.md](docs/insurer-integration.md).
 - **Derived, not guessed, scores.** The LLM reports observations; the payout math runs in code and is auditable.
 
 ---
@@ -113,6 +114,16 @@ Returns:
 
 By default the payout comes from the contract's pooled float. To fund it from **your own vault** instead, approve the TriageOracle contract for the payout token once, then add `"payoutVault": "0x…"` to the triage request — the payout is pulled from that vault via `transferFrom` (`settleClaimFrom`). Same fraud guards; the pool is untouched.
 
+### Coverage codes (insurer-authorized payouts)
+
+Instead of trusting a `coverageLimitUsd` from the caller, an insurer issues each policyholder a **signed coverage code** — an EIP-712 signature authorizing "up to `X` for this person, once." Add it to the claim:
+
+```jsonc
+"coverageCode": { "vault": "0x…", "coverage": "2000000000", "expiry": "1728…", "nonce": "0x…", "signature": "0x…" }
+```
+
+The contract (`settleClaimWithCode`) verifies the insurer's signature, **caps the payout at the signed coverage**, **burns the code** (one claim per code), pays from the insurer's vault, and emits a `CoverageClaimSettled` audit event. Insurer setup is ~10 lines — see [docs/insurer-integration.md](docs/insurer-integration.md).
+
 ### Paid access (x402)
 
 Two endpoints, one pipeline:
@@ -127,9 +138,9 @@ A self-hosted facilitator (`app/api/x402/verify`) verifies the buyer's EIP-3009 
 ## Architecture
 
 contracts/            Foundry — Solidity on X Layer
-src/TriageOracle.sol    Anchors photo hashes, gates payouts, settles (pool + bring-your-own-vault)
+src/TriageOracle.sol    Anchors photo hashes, gates payouts, settles (pool + vault + insurer coverage codes)
 src/MockUSDC.sol        Test stablecoin (6 decimals)
-test/                   7 passing tests: payout, rejection, duplicate, auth, vault payout (×3)
+test/                   11 passing tests: payout, rejection, duplicate, auth, vault payout (×3), coverage codes (×4)
 web/                  Next.js (TypeScript)
 app/api/triage/         Open endpoint — full pipeline, free direct use
 app/api/triage/x402/    Paid endpoint — always x402-gated; reuses the open pipeline after payment
