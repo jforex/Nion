@@ -210,7 +210,22 @@ export async function POST(req: NextRequest) {
       imageBase64,
       mimeType,
       payoutVault, // optional: bring-your-own-vault — funds the payout via transferFrom
+      coverageCode, // optional (v2): insurer-signed { vault, coverage, expiry, nonce, signature }
     } = await req.json();
+
+    // v2: a valid insurer-signed coverage code overrides caller-asserted coverage.
+    // The signed `coverage` (base units) is authoritative; the contract caps at it.
+    const useCode =
+      coverageCode &&
+      typeof coverageCode === "object" &&
+      /^0x[0-9a-fA-F]{40}$/.test(coverageCode.vault ?? "") &&
+      /^0x[0-9a-fA-F]{64}$/.test(coverageCode.nonce ?? "") &&
+      typeof coverageCode.signature === "string" &&
+      coverageCode.coverage != null &&
+      coverageCode.expiry != null;
+    const coverageUsd = useCode
+      ? Number(coverageCode.coverage) / 1_000_000
+      : coverageLimitUsd;
 
     // ── VERIFY-ONLY MODE ────────────────────────────────────────────────────
     // mode:"verify" runs just the peril oracles (no photo, no scoring, no
@@ -258,7 +273,7 @@ export async function POST(req: NextRequest) {
       !incidentDate ||
       !imageBase64 ||
       !mimeType ||
-      typeof coverageLimitUsd !== "number"
+      (typeof coverageLimitUsd !== "number" && !useCode)
     ) {
       return NextResponse.json({
         service: "Nion — Disaster Triage",
@@ -348,7 +363,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const payoutAmount = computePayout(damageScore, coverageLimitUsd, deductibleUsd);
+    const payoutAmount = computePayout(damageScore, coverageUsd, deductibleUsd);
     const payoutUsd = Number(payoutAmount) / 1_000_000;
     const approved = damageScore >= 40 && payoutAmount > 0n;
 
@@ -373,20 +388,41 @@ export async function POST(req: NextRequest) {
 
     // Submit the payout, then wait (bounded) for the receipt so we report the
     // TRUE settlement outcome — never claim "paid" for a tx we didn't confirm.
+    // Priority: coverage code (insurer-authorized, capped) > BYO-vault > pool.
     const wallet = getAgentWalletClient();
-    const txHash = useVault
-      ? await wallet.writeContract({
-          address: TRIAGE_ORACLE_ADDRESS,
-          abi: TRIAGE_ORACLE_ABI,
-          functionName: "settleClaimFrom",
-          args: [payoutVault as `0x${string}`, policyholder as `0x${string}`, photoHash, damageScore, payoutAmount],
-        })
-      : await wallet.writeContract({
-          address: TRIAGE_ORACLE_ADDRESS,
-          abi: TRIAGE_ORACLE_ABI,
-          functionName: "settleClaim",
-          args: [policyholder as `0x${string}`, photoHash, damageScore, payoutAmount],
-        });
+    let txHash: `0x${string}`;
+    if (useCode) {
+      txHash = await wallet.writeContract({
+        address: TRIAGE_ORACLE_ADDRESS,
+        abi: TRIAGE_ORACLE_ABI,
+        functionName: "settleClaimWithCode",
+        args: [
+          coverageCode.vault as `0x${string}`,
+          policyholder as `0x${string}`,
+          BigInt(coverageCode.coverage),
+          BigInt(coverageCode.expiry),
+          coverageCode.nonce as `0x${string}`,
+          coverageCode.signature as `0x${string}`,
+          photoHash,
+          damageScore,
+          payoutAmount,
+        ],
+      });
+    } else if (useVault) {
+      txHash = await wallet.writeContract({
+        address: TRIAGE_ORACLE_ADDRESS,
+        abi: TRIAGE_ORACLE_ABI,
+        functionName: "settleClaimFrom",
+        args: [payoutVault as `0x${string}`, policyholder as `0x${string}`, photoHash, damageScore, payoutAmount],
+      });
+    } else {
+      txHash = await wallet.writeContract({
+        address: TRIAGE_ORACLE_ADDRESS,
+        abi: TRIAGE_ORACLE_ABI,
+        functionName: "settleClaim",
+        args: [policyholder as `0x${string}`, photoHash, damageScore, payoutAmount],
+      });
+    }
     const explorerUrl = `https://www.okx.com/web3/explorer/xlayer-test/tx/${txHash}`;
 
     let settlement: {

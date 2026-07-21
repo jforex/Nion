@@ -20,9 +20,9 @@ export const xLayerTestnet = defineChain({
 
 // ── Deployed contract addresses ───────────────────────────────────────────
 export const MOCK_USDC_ADDRESS =
-  "0x2426e6b69868B5aABb476C01e7ca3b8487Dbe902" as const;
+  "0x8E8d3371E2976EF4aaEF9307663c33B728A4f61E" as const;
 export const TRIAGE_ORACLE_ADDRESS =
-  "0x3220eeE91D6C00332899C58A0425F5bbF656d691" as const;
+  "0x91fa736435D841C46a99c27899324F0f3FfCe6Fc" as const;
 
 // ── ABIs (only the functions we actually call) ────────────────────────────
 export const TRIAGE_ORACLE_ABI = [
@@ -45,6 +45,23 @@ export const TRIAGE_ORACLE_ABI = [
     inputs: [
       { name: "vault", type: "address" },
       { name: "policyholder", type: "address" },
+      { name: "photoHash", type: "bytes32" },
+      { name: "damagePercent", type: "uint8" },
+      { name: "payoutAmount", type: "uint256" },
+    ],
+    outputs: [{ name: "paid", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "settleClaimWithCode",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "vault", type: "address" },
+      { name: "policyholder", type: "address" },
+      { name: "coverage", type: "uint256" },
+      { name: "expiry", type: "uint256" },
+      { name: "codeNonce", type: "bytes32" },
+      { name: "signature", type: "bytes" },
       { name: "photoHash", type: "bytes32" },
       { name: "damagePercent", type: "uint8" },
       { name: "payoutAmount", type: "uint256" },
