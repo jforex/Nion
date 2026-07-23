@@ -40,6 +40,7 @@ export default function ClaimPage() {
   const [incidentDate, setIncidentDate] = useState("2024-10-09");
   const [peril, setPeril] = useState("Hurricane");
   const [photo, setPhoto] = useState<File | null>(null);
+  const [codeText, setCodeText] = useState(""); // optional insurer-signed coverage code
 
   const [flow, setFlow] = useState<FlowState>(EMPTY_FLOW);
   const [trackerOpen, setTrackerOpen] = useState(false);
@@ -77,6 +78,20 @@ export default function ClaimPage() {
     const lngN = parseFloat(lng);
     const coverageN = parseFloat(coverage);
     const deductibleN = parseFloat(deductible) || 0;
+
+    // Optional: an insurer-signed coverage code. When present it is authoritative —
+    // the payout is capped at the signed amount and the code works only once.
+    let parsedCode: any = null;
+    if (codeText.trim()) {
+      try {
+        parsedCode = JSON.parse(codeText);
+      } catch {
+        return setError("Coverage code is not valid JSON — paste the whole code from your insurer.");
+      }
+      if (!parsedCode?.vault || !parsedCode?.signature || parsedCode?.coverage == null) {
+        return setError("Coverage code is missing fields (vault, coverage, expiry, nonce, signature).");
+      }
+    }
     if (isNaN(latN) || isNaN(lngN)) return setError("Coordinates are invalid.");
     if (isNaN(coverageN)) return setError("Coverage limit is invalid.");
 
@@ -127,6 +142,7 @@ export default function ClaimPage() {
           damageScore: score,
           coverageLimitUsd: coverageN,
           deductibleUsd: deductibleN,
+          ...(parsedCode ? { coverageCode: parsedCode } : {}),
         }),
       });
       const sData = await sRes.json();
@@ -249,6 +265,20 @@ export default function ClaimPage() {
               <label style={s.label}>Damage photo</label>
               <input style={s.file} type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] || null)} />
               {photo && <div style={s.fileName}>{photo.name}</div>}
+            </div>
+
+            <div style={{ marginTop: 18 }}>
+              <label style={s.label}>Insurer coverage code <span style={{ textTransform: "none", color: "#8A7E6B", letterSpacing: 0 }}>· optional</span></label>
+              <textarea
+                style={{ ...s.input, minHeight: 84, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", fontSize: 12.5, resize: "vertical" }}
+                className="nion-input"
+                placeholder='Paste the signed code from your insurer, e.g. {"vault":"0x…","coverage":"2000000000","expiry":"…","nonce":"0x…","signature":"0x…"}'
+                value={codeText}
+                onChange={(e) => setCodeText(e.target.value)}
+              />
+              <div style={s.fileName}>
+                With a code, the payout is capped at your insurer&apos;s authorised amount and works once. No code → the coverage limit above is used.
+              </div>
             </div>
 
             {error && <div style={s.error}>{error}</div>}

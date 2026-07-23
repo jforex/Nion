@@ -16,16 +16,31 @@ export async function POST(req: NextRequest) {
       damageScore,
       coverageLimitUsd,
       deductibleUsd = 0,
+      coverageCode, // optional: insurer-signed { vault, coverage, expiry, nonce, signature }
     } = await req.json();
+
+    // A valid coverage code is authoritative — its signed `coverage` replaces
+    // any caller-asserted limit, and the contract caps the payout at it.
+    const useCode =
+      coverageCode &&
+      typeof coverageCode === "object" &&
+      /^0x[0-9a-fA-F]{40}$/.test(coverageCode.vault ?? "") &&
+      /^0x[0-9a-fA-F]{64}$/.test(coverageCode.nonce ?? "") &&
+      typeof coverageCode.signature === "string" &&
+      coverageCode.coverage != null &&
+      coverageCode.expiry != null;
+    const coverageUsd = useCode
+      ? Number(coverageCode.coverage) / 1_000_000
+      : coverageLimitUsd;
 
     if (
       !policyholder ||
       !imageBase64 ||
       typeof damageScore !== "number" ||
-      typeof coverageLimitUsd !== "number"
+      typeof coverageUsd !== "number"
     ) {
       return NextResponse.json(
-        { error: "policyholder, imageBase64, damageScore, coverageLimitUsd required" },
+        { error: "policyholder, imageBase64, damageScore, and coverageLimitUsd (or coverageCode) required" },
         { status: 400 }
       );
     }
@@ -45,10 +60,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const payoutAmount = computePayout(damageScore, coverageLimitUsd, deductibleUsd);
+    const payoutAmount = computePayout(damageScore, coverageUsd, deductibleUsd);
 
     const wallet = getAgentWalletClient();
-    const txHash = await wallet.writeContract({
+    const txHash = useCode
+      ? await wallet.writeContract({
+          address: TRIAGE_ORACLE_ADDRESS,
+          abi: TRIAGE_ORACLE_ABI,
+          functionName: "settleClaimWithCode",
+          args: [
+            coverageCode.vault as `0x${string}`,
+            policyholder as `0x${string}`,
+            BigInt(coverageCode.coverage),
+            BigInt(coverageCode.expiry),
+            coverageCode.nonce as `0x${string}`,
+            coverageCode.signature as `0x${string}`,
+            photoHash,
+            damageScore,
+            payoutAmount,
+          ],
+        })
+      : await wallet.writeContract({
       address: TRIAGE_ORACLE_ADDRESS,
       abi: TRIAGE_ORACLE_ABI,
       functionName: "settleClaim",
